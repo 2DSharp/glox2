@@ -1,6 +1,13 @@
+cmake-build-debug/
+*.so
+*.o
+*.out
+*.glxc
+*.a
+*.cbp
+CMakeFiles/
 CMakeLists.txt.user
 CMakeCache.txt
-CMakeFiles
 CMakeScripts
 Testing
 Makefile
