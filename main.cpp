@@ -61,7 +61,7 @@ int main() {
 
       Bytecode fib[] = {
       // int fib(n)
-    		 {OP, ICONST}, {INT, {.n = 1}},
+    		 {OP, ICONST}, {INT, {.n = 4}},
              {OP, CALL}, {ADDR, {.addr = F_FIB}},
              {OP, CALL}, {ADDR, {.addr = F_PRINT}},
              {OP, HALT},
@@ -127,7 +127,7 @@ int main() {
     func_pool[F_PRINT] = f_print;
 
     //printf("IP: %d\n", vm->instr_ptr);
-    vm->vm_run(code, func_pool, F_MAIN, 1);
+    vm->vm_run(code, func_pool, F_MAIN, 0);
     //printf("IP: %d\n", vm->instr_ptr);
 
     vm->vm_close();

@@ -212,8 +212,10 @@ short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function 
         loader->DLOpenLib();
         void (*native_func)(std::string);
         native_func = reinterpret_cast<void (*)(std::string)> (loader->DLGetInstance(curr_fn.call_symbol.c_str()));
-        native_func("Hello");
+        native_func(std::to_string(mem->locals[0].val.n));
         loader->DLCloseLib();
+
+        return ++ip;
     }
 
     stack_obj_t ptr;
