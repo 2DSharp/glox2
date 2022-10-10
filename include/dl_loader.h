@@ -18,8 +18,6 @@ class DLLoader {
 
 public:
 
-    virtual ~DLLoader() = default;
-
     /*
     **
     */
@@ -37,8 +35,6 @@ public:
     virtual void DLCloseLib() = 0;
 
 };
-
-}
 
 
 #endif //GLOX_DL_LOADER_H

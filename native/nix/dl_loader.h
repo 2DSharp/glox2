@@ -1,6 +1,10 @@
 //
 // Created by dedip on 09-10-2022.
 //
+
+#ifndef GLOX_UNIX_DL_LOADER_H
+#define GLOX_UNIX_DL_LOADER_H
+
 #include <iostream>
 #include <dlfcn.h>
 #include "../../include/dl_loader.h"
@@ -23,6 +27,10 @@ public:
         if (!(_handle = dlopen(_pathToLib.c_str(), RTLD_NOW | RTLD_LAZY))) {
             std::cerr << dlerror() << std::endl;
         }
+        if (_handle == nullptr) {
+            std::cerr << dlerror() << std::endl;
+        }
+
     }
 
     void DLCloseLib() override {
@@ -43,3 +51,4 @@ public:
         return func;
     }
 };
+#endif // GLOX_UNIX_DL_LOADER_H
