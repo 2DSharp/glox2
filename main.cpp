@@ -4,10 +4,10 @@
 #define F_MAIN 0
 #define F_ADD 1
 #define F_FIB 1
-#define F_PRINT 1
+#define F_PRINT 2
 int main() {
-    uint32_t stack_size = 1024;
-    Memory *mem = new Memory(4096, 1024);
+    uint32_t stack_size = 2000;
+    Memory *mem = new Memory(8096, 2000);
 
     VM *vm = new VM(stack_size, mem);
 
@@ -61,27 +61,26 @@ int main() {
 
       Bytecode fib[] = {
       // int fib(n)
-    		 {OP, ICONST}, {INT, {.n = 5}},
+    		 {OP, ICONST}, {INT, {.n = 1}},
              {OP, CALL}, {ADDR, {.addr = F_FIB}},
              {OP, CALL}, {ADDR, {.addr = F_PRINT}},
              {OP, HALT},
              {OP, LOAD}, {ADDR, {.addr = 0}},
              {OP, ICONST}, {INT, {.n = 2}},
              {OP, ILT}, // if (n < 2) / n <= 1 goto 10
-             {OP, JMPT}, {ADDR, {.addr = 29}},
+             {OP, JMPT}, {ADDR, {.addr = 30}},
              {OP, LOAD}, {ADDR, {.addr = 0}}, // n
              {OP, ICONST}, {INT, {.addr = 1}},
              {OP, ISUB}, // n - 1
-             {OP, CALL}, {ADDR, {.addr = F_FIB}}, // fib(n - 1)
-             {OP, LOAD}, {ADDR, {.addr = 0}}, // n
-             {OP, ICONST}, {INT, {.n = 2}},
-             {OP, ISUB}, // n - 2
-             {OP, CALL}, {ADDR, {.addr = F_FIB}}, // fib(n-2)
-             {OP, IADD}, // fib(n-1) + fib(n-2) Line: 23
-             {OP, RET},
+             {OP, CALL}, {ADDR, {.addr = F_FIB}}, // fib(n - 1) 17
+             {OP, LOAD}, {ADDR, {.addr = 0}}, // n 19
+             {OP, ICONST}, {INT, {.n = 2}}, // 21
+             {OP, ISUB}, // n - 23
+             {OP, CALL}, {ADDR, {.addr = F_FIB}}, // fib(n-2) // 24
+             {OP, IADD}, // fib(n-1) + fib(n-2) Line: 23 // 26
+             {OP, RET}, // 27
              {OP, LOAD}, {ADDR, {.addr = 0}}, // else return n
-             {OP, RET},
-             {OP, LOAD}, {ADDR, {.addr = 0}},
+             {OP, RET}
     };
 
     Code *code = new Code(fib, 2);
@@ -117,16 +116,18 @@ int main() {
     f_print.addr = 4;
     f_print.locals = 1;
     f_print.n_args = 1;
-    f_fib.return_type = 1;
-    f_fib.lib_path = "native/libio.so";
+    f_print.return_type = 1;
+    f_print.func_type = fn_t::NATIVE;
+    f_print.call_symbol = "print";
+    f_print.lib_path = "native/libio.so";
 
-    Function func_pool[2];
+    Function func_pool[3];
     func_pool[F_MAIN] = f_main;
     func_pool[F_FIB] = f_fib;
     func_pool[F_PRINT] = f_print;
 
     //printf("IP: %d\n", vm->instr_ptr);
-    vm->vm_run(code, func_pool, F_MAIN, 0);
+    vm->vm_run(code, func_pool, F_MAIN, 1);
     //printf("IP: %d\n", vm->instr_ptr);
 
     vm->vm_close();

@@ -10,7 +10,6 @@
 #include "memory.h"
 #include "function.h"
 #include "opcode.h"
-#include "dl_loader_factory.h"
 #include "bytecode.h"
 #include "dl_loader.h"
 #include <iostream>

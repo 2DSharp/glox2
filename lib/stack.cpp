@@ -19,7 +19,29 @@ Stack::Stack(int size) {
 void Stack::debug_print() {
     std::cout << "[ ";
     for ( int i = top; i > -1; i--) {
-        std::cout << contents[i].val.n;
+        switch (contents[i].type) {
+            case ADDR:
+                std::cout << contents[i].val.addr;
+                break;
+            case INT:
+                std::cout << contents[i].val.n;
+                break;
+            case CHAR:
+                std::cout << contents[i].val.s;
+                break;
+            case FLOAT:
+                std::cout << contents[i].val.f;
+                break;
+            case OP:
+                std::cout << contents[i].val.op;
+                break;
+            case BOOL:
+                std::cout << contents[i].val.b;
+                break;
+            default:
+                std::cout << "xx " << contents[i].val.n;
+        }
+        std::cout << " ";
     }
     std::cout << "]";
 }

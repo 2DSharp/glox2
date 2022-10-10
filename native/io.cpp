@@ -4,6 +4,6 @@
 
 #include "io.h"
 
-void print(std::string str) {
-    std::cout << "str";
+void print(std::string text) {
+    std::cout << "Pearl " <<  text;
 }

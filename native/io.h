@@ -8,7 +8,7 @@
 #include <iostream>
 extern "C"
 {
-void print(std::string str);
+void print(std::string text);
 }
 
 #endif //GLOX_BASICIO_H

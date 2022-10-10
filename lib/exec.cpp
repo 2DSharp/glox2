@@ -1,3 +1,4 @@
+#include <dl_loader.h>
 #include "../include/exec.h"
 
 //#define  __get_data(bytecode, type) (*(type *) bytecode.val)
@@ -66,6 +67,7 @@ short exec_iconst(Stack *stack, Code *code, short ip) {
 }
 
 void exec_print(Stack *stack) {
+    std::cout << "Hello";
     stack_obj_t v = stack_pop(stack);
     switch (v.type) {
         case INT:
@@ -191,13 +193,12 @@ void exec_pop(Stack *stack) {
 }
 
 short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function *fn_pool, short *caller_index) {
-    short target_index = code_fetch(code, ++ip).val.addr;
 
+    short target_index = code_fetch(code, ++ip).val.addr;
     Function curr_fn = fn_pool[*caller_index];
 
     Function target_fn = fn_pool[target_index];
 
-    std::cout << "HEREEE" << curr_fn.addr;
 
     short fp_new = mem->frame_ptr + curr_fn.locals;
 
@@ -207,13 +208,12 @@ short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function 
     }
 
     if (curr_fn.func_type == fn_t::NATIVE) {
-        DLLoader * loader = get_dl_loader(curr_fn.lib_path);
+        UnixDLLoader * loader = new UnixDLLoader(curr_fn.lib_path);
         loader->DLOpenLib();
-        void (*native_func)(...);
-        native_func = reinterpret_cast<void (*)(...)> (loader->DLGetInstance(curr_fn.call_symbol.c_str()));
+        void (*native_func)(std::string);
+        native_func = reinterpret_cast<void (*)(std::string)> (loader->DLGetInstance(curr_fn.call_symbol.c_str()));
         native_func("Hello");
         loader->DLCloseLib();
-        delete loader;
     }
 
     stack_obj_t ptr;
@@ -223,9 +223,10 @@ short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function 
     stack_push(stack, ptr); // Store this to access it later
 
     ptr.val.addr = mem->frame_ptr;
+
     stack_push(stack, ptr); // current frame ptr
 
-    ptr.val.addr = ip + (short) 1;
+    ptr.val.addr = ip + 1;
     stack_push(stack, ptr); // current ip
 
     mem->frame_ptr = fp_new;

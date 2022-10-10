@@ -72,7 +72,7 @@ void VM::vm_exec(Code *code_mem, const Opcode *opcode, const Function *func_pool
             break;
 
         case NONE:
-            opcode->exec_none();
+            //opcode->exec_none();
             ++this->instr_ptr;
             break;
 
