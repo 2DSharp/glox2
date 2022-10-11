@@ -4,6 +4,10 @@
 
 #include "io.h"
 
-void print(std::string text) {
-    std::cout << "Pearl " <<  text;
+void print(std::string str) {
+    std::cout << "Whaat?";
+    std::cout << str;
+}
+void GNative_io_print(std::string str) {
+    print(str);
 }

@@ -118,7 +118,7 @@ int main() {
     f_print.n_args = 1;
     f_print.return_type = 1;
     f_print.func_type = fn_t::NATIVE;
-    f_print.call_symbol = "print";
+    f_print.call_symbol = "GNative_io_print";
     f_print.lib_path = "native/libio.so";
 
     Function func_pool[3];

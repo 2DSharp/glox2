@@ -210,9 +210,9 @@ short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function 
     if (curr_fn.func_type == fn_t::NATIVE) {
         UnixDLLoader * loader = new UnixDLLoader(curr_fn.lib_path);
         loader->DLOpenLib();
-        void (*native_func)(std::string);
-        native_func = reinterpret_cast<void (*)(std::string)> (loader->DLGetInstance(curr_fn.call_symbol.c_str()));
-        native_func(std::to_string(mem->locals[0].val.n));
+        void (*native_func)(stack_obj_t*,std::string);
+        native_func = reinterpret_cast<void (*)(stack_obj_t*, std::string)> (loader->DLGetInstance("_invoke_gnative_function"));
+        native_func(mem->locals, curr_fn.call_symbol);
         loader->DLCloseLib();
 
         return ++ip;
