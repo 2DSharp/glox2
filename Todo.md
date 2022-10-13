@@ -5,6 +5,8 @@
 - [x] Basic CPU calculation in bytecodes
 - [x] Native function call implementation
 - [x] Initiate IO (printing to console)
+- [ ] Implement heap
+- [ ] Implement arrays
 - [ ] Return data from native calls
 - [ ] Constant pool implementation
 - [ ] Store multiple data types - floats, boolean (ldc, fload)

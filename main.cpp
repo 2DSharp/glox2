@@ -7,7 +7,9 @@
 #define F_PRINT 2
 int main() {
     uint32_t stack_size = 2000;
-    Memory *mem = new Memory(8096, 2000);
+    Memory *mem = new Memory(1024,
+                             1024,
+                             2048);
 
     VM *vm = new VM(stack_size, mem);
 

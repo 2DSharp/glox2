@@ -4,13 +4,15 @@
 
 #include "../include/memory.h"
 
-Memory::Memory(unsigned int local_sz, unsigned int global_sz)
+Memory::Memory(unsigned int local_sz, unsigned int global_sz, unsigned int heap_sz)
 {
     global_sz = local_sz;
     local_sz = global_sz;
+    heap_sz = heap_sz;
     frame_ptr = 0;
 
     locals = new stack_obj_t [local_sz];
+    heap = new Heap(heap_sz);
 }
 Memory::~Memory()
 {

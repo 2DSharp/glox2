@@ -112,6 +112,16 @@ short exec_jmp(Code *code, short ip) {
     return (code_fetch(code, ++ip).val.n);
 }
 
+short exec_new_primitive_array(Stack * stack, Code *code, short ip, Memory *mem) {
+    stack_obj_t size = code->code_fetch(++ip);
+    stack_obj_t type = code->code_fetch(++ip);
+    GObject * obj = GObjectFactory::create_array_descriptor(size.val.n, type.val.n);
+    addr ref = mem->heap->allocate_contiguous_block(obj, size.val.n);
+    stack_obj_t res = {ADDR, ref};
+    stack_push(stack, res);
+    return ip;
+}
+
 /*
  * Conditional Jump
  * If true on top of stack

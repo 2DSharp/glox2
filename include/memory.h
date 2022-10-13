@@ -6,6 +6,7 @@
 #define GLOX_MEMORY_H
 #include <algorithm>
 #include "stack.h"
+#include "Heap.h"
 
 class Memory
 {
@@ -15,8 +16,10 @@ public:
     short * globals;
     unsigned int global_sz;
     short frame_ptr;
+    Heap * heap;
 
-    Memory(unsigned int local_sz, unsigned int global_sz);
+private:
+    Memory(unsigned int local_sz, unsigned int global_sz, unsigned int heap_sz);
     ~Memory();
 } ;
 

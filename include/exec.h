@@ -12,6 +12,7 @@
 #include "opcode.h"
 #include "bytecode.h"
 #include "dl_loader.h"
+#include "g_object_factory.h"
 #include <iostream>
 
 void exec_nop();
