@@ -114,41 +114,41 @@ short exec_jmp(Code *code, short ip) {
 }
 
 short exec_newparray(Stack * stack, Code *code, short ip, Memory *mem) {
-    stack_obj_t size = code->code_fetch(++ip);
-    stack_obj_t type = code->code_fetch(++ip);
+    stack_obj_t size = stack_pop(stack);
+    stack_obj_t type = stack_pop(stack);
     GObject * obj = GObjectFactory::create_array_descriptor(size.val.n, type.val.n);
     addr ref = mem->heap->allocate_contiguous_block(obj, size.val.n);
-    stack_obj_t res = {ADDR, ref};
+    stack_obj_t res = {.type = ADDR, .val = {.addr = ref}};
     stack_push(stack, res);
-    return ip;
+    return ++ip;
 }
 
 short exec_paload(Stack *stack, Code *code, short ip, Memory *mem) {
-    stack_obj_t arr_ref = code->code_fetch(++ip);
+    stack_obj_t arr_ref = stack_pop(stack);
     auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
-    stack_obj_t index = code->code_fetch(++ip);
+    stack_obj_t index = stack_pop(stack);
     GObject * arr_obj = mem->heap->get_object(arr_descriptor->get_address_from_index(index.val.n));
     stack_obj_t * primitive = arr_obj->_data;
     stack_push(stack, *primitive);
-    return ip;
+    return ++ip;
 }
 
 short exec_alen(Stack *stack, Code *code, short ip, Memory *mem) {
-    stack_obj_t arr_ref = code->code_fetch(++ip);
+    stack_obj_t arr_ref = stack_pop(stack);
     auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
-    stack_obj_t len = {.type = INT, .val.n = static_cast<int>(arr_descriptor->_size)};
+    stack_obj_t len = {.type = INT, .val = {.n = static_cast<int>(arr_descriptor->_size)}};
     stack_push(stack, len);
-    return ip;
+    return ++ip;
 }
 
 short exec_pastore(Stack *stack, Code *code, short ip, Memory *mem) {
-    stack_obj_t arr_ref = code->code_fetch(++ip);
+    stack_obj_t arr_ref = stack_pop(stack);
     auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
-    stack_obj_t index = code->code_fetch(++ip);
+    stack_obj_t index = stack_pop(stack);
     stack_obj_t value = stack_pop(stack);
     GObject * arr_obj = GObjectFactory::create_primitive_object(&value);
     mem->heap->alloc(arr_descriptor->get_address_from_index(index.val.n), arr_obj);
-    return ip;
+    return ++ip;
 }
 
 /*
