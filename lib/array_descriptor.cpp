@@ -5,7 +5,7 @@
 #include "../include/array_descriptor.h"
 
 addr ArrayDescriptor::get_address_from_index(int index) {
-    return _address + index;
+    return _address + 1 + index;
 }
 
 ArrayDescriptor::ArrayDescriptor(size_t size, unsigned int type) : _size(size), _type(type), GObject(ARRAY) {
