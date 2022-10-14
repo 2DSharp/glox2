@@ -17,8 +17,6 @@ public:
     unsigned int global_sz;
     short frame_ptr;
     Heap * heap;
-
-private:
     Memory(unsigned int local_sz, unsigned int global_sz, unsigned int heap_sz);
     ~Memory();
 } ;
