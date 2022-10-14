@@ -5,6 +5,7 @@
 #define F_ADD 1
 #define F_FIB 1
 #define F_PRINT 2
+#define F_ARR 3
 int main() {
     uint32_t stack_size = 2000;
     Memory *mem = new Memory(1024,
@@ -115,22 +116,43 @@ int main() {
     f_fib.return_type = 1;
 
     Function f_print;
-    f_print.addr = 4;
     f_print.locals = 1;
+    f_print.addr = 4;
     f_print.n_args = 1;
     f_print.return_type = 1;
     f_print.func_type = fn_t::NATIVE;
     f_print.call_symbol = "GNative_io_print";
     f_print.lib_path = "native/libio.so";
 
-    Function func_pool[3];
+    Function func_pool[4];
     func_pool[F_MAIN] = f_main;
     func_pool[F_FIB] = f_fib;
     func_pool[F_PRINT] = f_print;
 
     //printf("IP: %d\n", vm->instr_ptr);
     vm->vm_run(code, func_pool, F_MAIN, 0);
+    f_print.addr = 19;
+
     //printf("IP: %d\n", vm->instr_ptr);
+    Bytecode arr_test[] = {
+            {OP, ICONST}, {INT, {.n = INT}},
+            {OP, ICONST}, {INT, {.n = 6}},
+            {OP, NEW_PARRAY}, // arr_ref is on top of stack
+//            {OP, CALL}, {ADDR, {.addr = F_PRINT}},
+            {OP, STORE}, {ADDR, {.addr = 0}},
+            {OP, ICONST}, {INT, {.n = 7}}, // value
+            {OP, ICONST}, {INT, {.n = 1}}, // index
+            {OP, LOAD}, {ADDR, {.addr = 0}}, // ref
+            {OP, PASTORE},
+            {OP, ICONST}, {INT, {.n = 1}},
+            {OP, LOAD}, {ADDR, {.addr = 0}},
+            {OP, PALOAD},
+            {OP, CALL}, {ADDR, {.addr = F_PRINT}},
+            {OP, HALT},
+    };
+    code = new Code(arr_test, 2);
+
+    vm->vm_run(code, func_pool, F_MAIN, 1);
 
     vm->vm_close();
     delete code;
