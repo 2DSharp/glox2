@@ -15,8 +15,10 @@ Heap::Heap(unsigned int size) {
 addr Heap::allocate_contiguous_block(GObject * object, int size) {
     _objects[_tail] = object;
     object->set_address(_tail);
+    addr curr = _tail;
+    ++_tail;
     _tail += size;
-    return _tail;
+    return curr;
 };
 
 GObject * Heap::get_object(addr address) {
