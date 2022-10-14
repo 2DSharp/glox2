@@ -32,6 +32,10 @@
 #define POP 24
 #define CALL 25
 #define RET 26
+#define NEW_PARRAY 27
+#define PALOAD 28
+#define PASTORE 29
+#define ALEN 30
 
 #define OP 0
 #define INT 1

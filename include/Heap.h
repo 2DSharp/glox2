@@ -17,6 +17,11 @@ private:
 public:
     explicit Heap(unsigned int size);
     addr allocate_contiguous_block(GObject *object, int size);
+
+    GObject *get_object(addr address);
+
+    bool alloc(addr address, GObject * obj);
+    bool alloc(GObject * obj);
 };
 
 

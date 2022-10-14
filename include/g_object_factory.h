@@ -7,9 +7,12 @@
 
 
 #include "g_object.h"
+#include "array_descriptor.h"
+
 class GObjectFactory {
 public:
-    static GObject *create_array_descriptor(size_t size, unsigned int type);
-}
+    static ArrayDescriptor * create_array_descriptor(size_t size, unsigned int type);
+    static GObject * create_primitive_object(stack_obj_t * data);
+};
 
 #endif //GLOX_GOBJECTFACTORY_H

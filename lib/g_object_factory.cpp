@@ -5,8 +5,10 @@
 #include "../include/g_object_factory.h"
 
 
-GObject *GObjectFactory::create_array_descriptor(size_t size, unsigned int type) {
-    GObject::array_descriptor_t container = {.size = size, .type = type};
-    auto *obj = new GObject(&container, GObject::ARRAY);
-    return obj;
+ArrayDescriptor * GObjectFactory::create_array_descriptor(size_t size, unsigned int type) {
+    return new ArrayDescriptor(size, type);
+}
+
+GObject *GObjectFactory::create_primitive_object(stack_obj_t *data) {
+    return new GObject(data, GObject::PRIMITIVE);
 }

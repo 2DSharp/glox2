@@ -1,5 +1,6 @@
 #include <dl_loader.h>
 #include "../include/exec.h"
+#include "../include/array_descriptor.h"
 
 //#define  __get_data(bytecode, type) (*(type *) bytecode.val)
 
@@ -112,13 +113,41 @@ short exec_jmp(Code *code, short ip) {
     return (code_fetch(code, ++ip).val.n);
 }
 
-short exec_new_primitive_array(Stack * stack, Code *code, short ip, Memory *mem) {
+short exec_newparray(Stack * stack, Code *code, short ip, Memory *mem) {
     stack_obj_t size = code->code_fetch(++ip);
     stack_obj_t type = code->code_fetch(++ip);
     GObject * obj = GObjectFactory::create_array_descriptor(size.val.n, type.val.n);
     addr ref = mem->heap->allocate_contiguous_block(obj, size.val.n);
     stack_obj_t res = {ADDR, ref};
     stack_push(stack, res);
+    return ip;
+}
+
+short exec_paload(Stack *stack, Code *code, short ip, Memory *mem) {
+    stack_obj_t arr_ref = code->code_fetch(++ip);
+    auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
+    stack_obj_t index = code->code_fetch(++ip);
+    GObject * arr_obj = mem->heap->get_object(arr_descriptor->get_address_from_index(index.val.n));
+    stack_obj_t * primitive = arr_obj->_data;
+    stack_push(stack, *primitive);
+    return ip;
+}
+
+short exec_alen(Stack *stack, Code *code, short ip, Memory *mem) {
+    stack_obj_t arr_ref = code->code_fetch(++ip);
+    auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
+    stack_obj_t len = {.type = INT, .val.n = static_cast<int>(arr_descriptor->_size)};
+    stack_push(stack, len);
+    return ip;
+}
+
+short exec_pastore(Stack *stack, Code *code, short ip, Memory *mem) {
+    stack_obj_t arr_ref = code->code_fetch(++ip);
+    auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
+    stack_obj_t index = code->code_fetch(++ip);
+    stack_obj_t value = stack_pop(stack);
+    GObject * arr_obj = GObjectFactory::create_primitive_object(&value);
+    mem->heap->alloc(arr_descriptor->get_address_from_index(index.val.n), arr_obj);
     return ip;
 }
 
@@ -298,6 +327,13 @@ void opcode_runner_init(Opcode *ops) {
 
     ops[STORE].type = MEMORY_HANDLER;
     ops[STORE].exec_mem = exec_store;
+
+    ops[NEW_PARRAY].type = MEMORY_HANDLER;
+    ops[NEW_PARRAY].exec_mem = exec_newparray;
+
+    ops[PALOAD] = {.type = MEMORY_HANDLER, .exec_mem = exec_paload};
+    ops[PASTORE] = {.type = MEMORY_HANDLER, .exec_mem = exec_pastore};
+    ops[ALEN] = {.type = MEMORY_HANDLER, .exec_mem = exec_alen};
 
     ops[JMP].type = UNCONDITIONAL_BRANCH;
     ops[JMP].exec_ujmp = exec_jmp;

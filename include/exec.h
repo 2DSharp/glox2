@@ -48,7 +48,10 @@ void exec_pop(Stack *stack);
 short exec_call(Stack *stack, const Code *code, short ip, Memory *mem, const Function *fn_pool, int *caller_index);
 
 short exec_ret(Stack *stack, const Code *code, short ip, Memory *mem, const Function *fn_pool, int *caller_index);
-
+short exec_newparray(Stack * stack, Code *code, short ip, Memory *mem);
+short exec_paload(Stack *stack, Code *code, short ip, Memory *mem);
+short exec_alen(Stack *stack, Code *code, short ip, Memory *mem);
+short exec_pastore(Stack *stack, Code *code, short ip, Memory *mem);
 void opcode_runner_init(Opcode *ops);
 
 #endif //GLOX_EXEC_H

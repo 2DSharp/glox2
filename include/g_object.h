@@ -7,6 +7,8 @@
 
 
 #include "stack.h"
+#include "constants.h"
+
 #define G_ARRAY_OBJ 1
 #define G_ARRAY_BOOL 2
 #define G_ARRAY_INT 3
@@ -14,13 +16,9 @@
 #define G_ARRAY_CHAR 5
 
 class GObject {
-
-
 public:
-    struct array_descriptor_t {
-        size_t size;
-        unsigned int type;
-    };
+    addr _address;
+
     struct container_obj_t {
         size_t size;
     };
@@ -30,17 +28,18 @@ public:
         OBJ = 2
     } Type;
 
-    GObject(){};
-    GObject(stack_obj_t * data, Type type);
-    GObject(container_obj_t * container, Type type);
-    GObject(array_descriptor_t * array_descriptor, Type type);
+    GObject() = default;
+
+    GObject(stack_obj_t *data, Type type);
+
+    explicit GObject(Type type);
 
 
-private:
-    container_obj_t * _container;
-    array_descriptor_t * _array_descriptor;
-    stack_obj_t * _data;
+    void set_address(addr address);
+
+    stack_obj_t *_data;
     Type _type;
+    virtual ~GObject() = default;
 };
 
 
