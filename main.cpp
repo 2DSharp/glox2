@@ -132,17 +132,18 @@ int main() {
     //printf("IP: %d\n", vm->instr_ptr);
     vm->vm_run(code, func_pool, F_MAIN, 0);
     f_print.addr = 19;
+    func_pool[F_PRINT] = f_print;
 
     //printf("IP: %d\n", vm->instr_ptr);
     Bytecode arr_test[] = {
             {OP, ICONST}, {INT, {.n = INT}},
-            {OP, ICONST}, {INT, {.n = 6}},
+            {OP, ICONST}, {INT, {.n = 4}},
             {OP, NEW_PARRAY}, // arr_ref is on top of stack
 //            {OP, CALL}, {ADDR, {.addr = F_PRINT}},
             {OP, STORE}, {ADDR, {.addr = 0}},
             {OP, ICONST}, {INT, {.n = 7}}, // value
             {OP, ICONST}, {INT, {.n = 1}}, // index
-            {OP, LOAD}, {ADDR, {.addr = 0}}, // ref
+            {OP, LOAD}, {ADDR, {.addr = 0}}, //  ref
             {OP, PASTORE},
             {OP, ICONST}, {INT, {.n = 1}},
             {OP, LOAD}, {ADDR, {.addr = 0}},
