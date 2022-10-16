@@ -32,6 +32,20 @@ void VM::vm_run(Code *code_mem, const Function *func_pool, short func_index, int
                 printf("%d ", this->memory->locals[i]);
             }
             printf(" ] ");
+            printf(" Heap: [ ");
+
+            for (int i = 0; i < 10; i++) {
+                GObject * heap_obj = this->memory->heap->get_object(i);
+                if (heap_obj != nullptr && heap_obj->_type == GObject::PRIMITIVE) {
+                    printf("{T: %d D: %d I: %d} ",heap_obj->_data.type, heap_obj->_data.val.n, i);
+                }
+                if (heap_obj != nullptr && heap_obj->_type == GObject::ARRAY) {
+                    auto arr = dynamic_cast<ArrayDescriptor *>(heap_obj);
+
+                    std::cout << "{ P " << arr->_size << " } ";
+                }
+            }
+            printf(" ] ");
             //printf("fu: %d",func_pool[func_index].n_args);
         }
         /** Execute */
@@ -64,6 +78,7 @@ void VM::vm_exec(Code *code_mem, const Opcode *opcode, const Function *func_pool
             this->instr_ptr = opcode->exec_ujmp(code_mem, this->instr_ptr);
             break;
         case MEMORY_HANDLER:
+
             this->instr_ptr = opcode->exec_mem(this->stack, code_mem, this->instr_ptr, this->memory);
             break;
 
