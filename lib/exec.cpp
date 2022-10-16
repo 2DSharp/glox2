@@ -128,8 +128,8 @@ short exec_paload(Stack *stack, Code *code, short ip, Memory *mem) {
     auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
     stack_obj_t index = stack_pop(stack);
     GObject * arr_obj = mem->heap->get_object(arr_descriptor->get_address_from_index(index.val.n));
-    stack_obj_t * primitive = arr_obj->_data;
-    stack_push(stack, *primitive);
+    stack_obj_t primitive = arr_obj->_data;
+    stack_push(stack, primitive);
     return ++ip;
 }
 
@@ -356,4 +356,3 @@ void opcode_runner_init(Opcode *ops) {
     ops[RET].type = CALLER;
     ops[RET].exec_caller = exec_ret;
 }
-
