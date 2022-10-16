@@ -4,7 +4,7 @@
 
 #include "../include/g_object.h"
 
-GObject::GObject(stack_obj_t * data, GObject::Type type) : _data(data), _type(type)
+GObject::GObject(stack_obj_t * data, GObject::Type type) : _data(*data), _type(type)
 {
 }
 

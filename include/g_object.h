@@ -37,7 +37,7 @@ public:
 
     void set_address(addr address);
 
-    stack_obj_t *_data;
+    stack_obj_t _data;
     Type _type;
     virtual ~GObject() = default;
 };
