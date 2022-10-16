@@ -2,6 +2,7 @@
 // Created by dedip on 13-10-2022.
 //
 
+#include <iostream>
 #include "../include/Heap.h"
 
 Heap::Heap(unsigned int size) {
@@ -27,10 +28,12 @@ GObject * Heap::get_object(addr address) {
 
 bool Heap::alloc(GObject *obj) {
     _objects[_tail] = obj;
+    ++_tail;
     return true;
 }
 
 bool Heap::alloc(addr address, GObject *obj) {
     _objects[address] = obj;
+    obj->set_address(address);
     return true;
 }

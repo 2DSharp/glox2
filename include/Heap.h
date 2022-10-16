@@ -16,6 +16,9 @@ private:
 
 public:
     explicit Heap(unsigned int size);
+    size_t get_size() const {
+        return _size;
+    };
     addr allocate_contiguous_block(GObject *object, int size);
 
     GObject *get_object(addr address);
