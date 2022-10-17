@@ -17,6 +17,7 @@ void VM::vm_run(Code *code_mem, const Function *func_pool, short func_index, int
 
     opcode_runner_init(opcodes);
     this->instr_ptr = func_pool[func_index].addr;
+
     code = get_code(code_mem->code_fetch(this->instr_ptr));
 
     while (code != HALT && this->state != ST_INVALID) {
@@ -29,7 +30,7 @@ void VM::vm_run(Code *code_mem, const Function *func_pool, short func_index, int
             // print the local memory
             printf(" Mem: [ ");
             for (int i = 0; i < 10; i++) {
-                printf("%d ", this->memory->locals[i]);
+                printf("%d ", this->memory->locals[i].val.n);
             }
             printf(" ] ");
             printf(" Heap: [ ");
@@ -42,7 +43,7 @@ void VM::vm_run(Code *code_mem, const Function *func_pool, short func_index, int
                 if (heap_obj != nullptr && heap_obj->_type == GObject::ARRAY) {
                     auto arr = dynamic_cast<ArrayDescriptor *>(heap_obj);
 
-                    std::cout << "{ P " << arr->_size << " } ";
+                    std::cout << "{ P: " << arr->_size << " } ";
                 }
             }
             printf(" ] ");
