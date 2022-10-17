@@ -245,7 +245,7 @@ short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function 
     }
 
     if (target_fn.func_type == fn_t::NATIVE) {
-        // TODO copy subarray from global memory object
+        // Make a copy of the local variables into a subarray
         stack_obj_t local_mem[target_fn.n_args];
         for (int i = 0; i < target_fn.n_args; i++) {
             local_mem[i] = mem->locals[mem->frame_ptr + i + 1];
