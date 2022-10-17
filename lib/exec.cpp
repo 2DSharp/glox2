@@ -96,7 +96,7 @@ void exec_println(Stack *stack) {
 
 short exec_load(Stack *stack, Code *code, short ip, Memory *mem) {
     short offset = code_fetch(code, ++ip).val.addr;
-    short addr = offset + mem->frame_ptr;
+    short addr = offset + mem->frame_ptr + 1;
     stack_push(stack, mem->locals[addr]);
     return ++ip;
 }
@@ -105,7 +105,7 @@ short exec_load(Stack *stack, Code *code, short ip, Memory *mem) {
 short exec_store(Stack *stack, Code *code, short ip, Memory *mem) {
 
     short offset = code_fetch(code, ++ip).val.addr;
-    mem->locals[mem->frame_ptr + offset] = stack_pop(stack);
+    mem->locals[mem->frame_ptr + offset + 1] = stack_pop(stack);
     return ++ip;
 }
 

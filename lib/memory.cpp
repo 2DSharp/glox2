@@ -9,7 +9,7 @@ Memory::Memory(unsigned int local_sz, unsigned int global_sz, unsigned int heap_
     global_sz = local_sz;
     local_sz = global_sz;
     heap_sz = heap_sz;
-    frame_ptr = 0;
+    frame_ptr = -1;
 
     locals = new stack_obj_t [local_sz];
     heap = new Heap(heap_sz);
