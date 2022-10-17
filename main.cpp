@@ -117,7 +117,6 @@ int main() {
 
     Function f_print;
     f_print.locals = 1;
-    f_print.addr = 4;
     f_print.n_args = 1;
     f_print.return_type = 1;
     f_print.func_type = fn_t::NATIVE;
@@ -131,8 +130,6 @@ int main() {
 
     //printf("IP: %d\n", vm->instr_ptr);
     vm->vm_run(code, func_pool, F_MAIN, 0);
-    f_print.addr = 19;
-    func_pool[F_PRINT] = f_print;
 
     //printf("IP: %d\n", vm->instr_ptr);
     Bytecode arr_test[] = {
@@ -141,13 +138,17 @@ int main() {
             {OP, NEW_PARRAY}, // arr_ref is on top of stack
 //            {OP, CALL}, {ADDR, {.addr = F_PRINT}},
             {OP, STORE}, {ADDR, {.addr = 0}},
-            {OP, ICONST}, {INT, {.n = 7}}, // value
+            {OP, ICONST}, {INT, {.n = 33}}, // value
             {OP, ICONST}, {INT, {.n = 1}}, // index
             {OP, LOAD}, {ADDR, {.addr = 0}}, //  ref
             {OP, PASTORE},
             {OP, ICONST}, {INT, {.n = 1}},
             {OP, LOAD}, {ADDR, {.addr = 0}},
             {OP, PALOAD},
+            {OP, LOAD}, {ADDR, {.addr = 0}},
+            {OP, ALEN},
+            {OP, CALL}, {ADDR, {.addr = F_PRINT}},
+            {OP, ICONST}, {INT, {.n = 1000}},
             {OP, CALL}, {ADDR, {.addr = F_PRINT}},
             {OP, HALT},
     };
