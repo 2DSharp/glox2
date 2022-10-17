@@ -99,7 +99,7 @@ int main() {
 
     Function f_main;
     f_main.addr = 0;
-    f_main.locals = 0;
+    f_main.locals = 3;
     f_main.n_args = 0;
     f_main.return_type = 0;
     /*
@@ -145,16 +145,60 @@ int main() {
             {OP, ICONST}, {INT, {.n = 1}},
             {OP, LOAD}, {ADDR, {.addr = 0}},
             {OP, PALOAD},
+            {OP, CALL}, {ADDR, {.addr = F_PRINT}},
             {OP, LOAD}, {ADDR, {.addr = 0}},
             {OP, ALEN},
             {OP, CALL}, {ADDR, {.addr = F_PRINT}},
             {OP, ICONST}, {INT, {.n = 1000}},
             {OP, CALL}, {ADDR, {.addr = F_PRINT}},
+
+            {OP, ICONST}, {INT, {.n = 75}}, // value
+            {OP, ICONST}, {INT, {.n = 1}}, // index
+            {OP, LOAD}, {ADDR, {.addr = 0}}, //  ref
+            {OP, PASTORE},
+
+            {OP, ICONST}, {INT, {.n = -109}}, // value
+            {OP, ICONST}, {INT, {.n = 0}}, // index
+            {OP, LOAD}, {ADDR, {.addr = 0}}, //  ref
+            {OP, PASTORE},
+
+            {OP, ICONST}, {INT, {.n = 9}}, // value
+            {OP, ICONST}, {INT, {.n = 3}}, // index
+            {OP, LOAD}, {ADDR, {.addr = 0}}, //  ref
+            {OP, PASTORE},
+
+            {OP, ICONST}, {INT, {.n = 777}}, // value
+            {OP, ICONST}, {INT, {.n = 2}}, // index
+            {OP, LOAD}, {ADDR, {.addr = 0}}, //  ref
+            {OP, PASTORE},
+            // --- Stored data here --
+            // Now let's iterate through the array
+            {OP, LOAD}, {ADDR, {.addr = 0}},
+            {OP, ALEN}, // Store length in variable
+            {OP, STORE}, {ADDR, {.addr = 2}}, // len = arr.length
+            {OP, ICONST}, {INT, {.n = 0}},
+            {OP, STORE}, {ADDR, {.addr = 1}}, // i = 0
+            {OP, LOAD}, {ADDR, {.addr = 1}},
+            {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // 69
+
+            {OP, LOAD}, {INT, {.addr = 1}},
+            {OP, LOAD}, {ADDR, {.addr = 0}},
+            {OP, PALOAD},
+            {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // print arr[i]
+
+            {OP, LOAD}, {INT, {.addr = 1}},
+            {OP, ICONST}, {INT, {.n = 1}},
+            {OP, IADD},
+            {OP, STORE}, {ADDR, {.addr = 1}}, // i = i + 1
+            {OP, LOAD}, {ADDR, {.addr = 1}}, // i
+            {OP, LOAD}, {ADDR, {.addr = 2}}, // arr.length
+            {OP, ILT}, // i < arr.length
+            {OP, JMPT}, {ADDR, {.addr = 71}},
             {OP, HALT},
     };
     code = new Code(arr_test, 2);
 
-    vm->vm_run(code, func_pool, F_MAIN, 1);
+    vm->vm_run(code, func_pool, F_MAIN, 0);
 
     vm->vm_close();
     delete code;
