@@ -232,26 +232,29 @@ void exec_pop(Stack *stack) {
 }
 
 short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function *fn_pool, short *caller_index) {
-
     short target_index = code_fetch(code, ++ip).val.addr;
-    Function curr_fn = fn_pool[*caller_index];
-
+    Function caller_fn = fn_pool[*caller_index];
     Function target_fn = fn_pool[target_index];
 
-
-    short fp_new = mem->frame_ptr + curr_fn.locals;
+    short fp_new = mem->frame_ptr + caller_fn.locals;
 
     for (int i = 1; i <= target_fn.n_args; i++) {
         stack_obj_t v = stack_pop(stack);
-        mem->locals[fp_new + target_fn.n_args - i] = v;
+        // Leave the fp, start from the next address otherwise it will overwrite whatever is in fp
+        mem->locals[fp_new + 1 + target_fn.n_args - i] = v;
     }
 
-    if (curr_fn.func_type == fn_t::NATIVE) {
-        UnixDLLoader * loader = new UnixDLLoader(curr_fn.lib_path);
+    if (target_fn.func_type == fn_t::NATIVE) {
+        // TODO copy subarray from global memory object
+        stack_obj_t local_mem[target_fn.n_args];
+        for (int i = 0; i < target_fn.n_args; i++) {
+            local_mem[i] = mem->locals[mem->frame_ptr + i + 1];
+        }
+        UnixDLLoader * loader = new UnixDLLoader(target_fn.lib_path);
         loader->DLOpenLib();
         void (*native_func)(stack_obj_t*,std::string);
         native_func = reinterpret_cast<void (*)(stack_obj_t*, std::string)> (loader->DLGetInstance("_invoke_gnative_function"));
-        native_func(mem->locals, curr_fn.call_symbol);
+        native_func(local_mem, target_fn.call_symbol);
         loader->DLCloseLib();
 
         return ++ip;
@@ -268,11 +271,11 @@ short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function 
     stack_push(stack, ptr); // current frame ptr
 
     ptr.val.addr = ip + 1;
-    stack_push(stack, ptr); // current ip
+    stack_push(stack, ptr); // The IP where it's going to continue after returning
 
     mem->frame_ptr = fp_new;
     ip = fn_pool[target_index].addr;
-    *caller_index = target_index;
+    *caller_index = target_index; // Sets the new caller function index to the target function's index
     return ip;
 }
 
