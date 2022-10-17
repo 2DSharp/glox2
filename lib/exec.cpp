@@ -248,7 +248,7 @@ short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function 
         // Make a copy of the local variables into a subarray
         stack_obj_t local_mem[target_fn.n_args];
         for (int i = 0; i < target_fn.n_args; i++) {
-            local_mem[i] = mem->locals[mem->frame_ptr + i + 1];
+            local_mem[i] = mem->locals[fp_new + i + 1];
         }
         UnixDLLoader * loader = new UnixDLLoader(target_fn.lib_path);
         loader->DLOpenLib();
