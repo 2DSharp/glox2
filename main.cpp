@@ -129,9 +129,9 @@ int main() {
     func_pool[F_PRINT] = f_print;
 
     //printf("IP: %d\n", vm->instr_ptr);
-    vm->vm_run(code, func_pool, F_MAIN, 0);
+    vm->vm_run(code, func_pool, F_MAIN, 1);
 
-    //printf("IP: %d\n", vm->instr_ptr);
+    //prcintf("IP: %d\n", vm->instr_ptr);
     Bytecode arr_test[] = {
             {OP, ICONST}, {INT, {.n = INT}},
             {OP, ICONST}, {INT, {.n = 4}},

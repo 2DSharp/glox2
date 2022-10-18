@@ -28,11 +28,11 @@ void VM::vm_run(Code *code_mem, const Function *func_pool, short func_index, int
             //printf("\tTop: %d\n", this->stack->top);
             printf("IP: %03d\tOpcode: %04d\tFP: %02d ", this->instr_ptr, code, this->memory->frame_ptr);
             // print the local memory
-            printf(" Mem: [ ");
-            for (int i = 0; i < 10; i++) {
-                printf("%d ", this->memory->locals[i].val.n);
-            }
-            printf(" ] ");
+//            printf(" Mem: [ ");
+//            for (int i = 0; i < 10; i++) {
+//                printf("%d ", this->memory->locals[i].val.n);
+//            }
+//            printf(" ] ");
             printf(" Heap: [ ");
 
             for (int i = 0; i < 10; i++) {

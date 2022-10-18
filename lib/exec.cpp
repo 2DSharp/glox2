@@ -96,8 +96,7 @@ void exec_println(Stack *stack) {
 
 short exec_load(Stack *stack, Code *code, short ip, Memory *mem) {
     short offset = code_fetch(code, ++ip).val.addr;
-    short addr = offset + mem->frame_ptr + 1;
-    stack_push(stack, mem->locals[addr]);
+    stack_push(stack, stack->get_content(offset));
     return ++ip;
 }
 
@@ -105,7 +104,7 @@ short exec_load(Stack *stack, Code *code, short ip, Memory *mem) {
 short exec_store(Stack *stack, Code *code, short ip, Memory *mem) {
 
     short offset = code_fetch(code, ++ip).val.addr;
-    mem->locals[mem->frame_ptr + offset + 1] = stack_pop(stack);
+    stack->set_content(offset, stack_pop(stack));
     return ++ip;
 }
 
@@ -236,19 +235,20 @@ short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function 
     Function caller_fn = fn_pool[*caller_index];
     Function target_fn = fn_pool[target_index];
 
-    short fp_new = mem->frame_ptr + caller_fn.locals;
+    short fp_new = stack->frame_ptr + caller_fn.locals;
 
     for (int i = 1; i <= target_fn.n_args; i++) {
         stack_obj_t v = stack_pop(stack);
         // Leave the fp, start from the next address otherwise it will overwrite whatever is in fp
-        mem->locals[fp_new + 1 + target_fn.n_args - i] = v;
+        stack->set_content(fp_new, target_fn.n_args - i, v);
     }
 
     if (target_fn.func_type == fn_t::NATIVE) {
         // Make a copy of the local variables into a subarray
         stack_obj_t local_mem[target_fn.n_args];
         for (int i = 0; i < target_fn.n_args; i++) {
-            local_mem[i] = mem->locals[fp_new + i + 1];
+
+            local_mem[i] = stack->get_content(fp_new, i);
         }
         UnixDLLoader * loader = new UnixDLLoader(target_fn.lib_path);
         loader->DLOpenLib();
@@ -266,14 +266,14 @@ short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function 
     ptr.val.addr = *caller_index;
     stack_push(stack, ptr); // Store this to access it later
 
-    ptr.val.addr = mem->frame_ptr;
+    ptr.val.addr = stack->frame_ptr;
 
     stack_push(stack, ptr); // current frame ptr
 
     ptr.val.addr = ip + 1;
     stack_push(stack, ptr); // The IP where it's going to continue after returning
 
-    mem->frame_ptr = fp_new;
+    stack->frame_ptr = fp_new;
     ip = fn_pool[target_index].addr;
     *caller_index = target_index; // Sets the new caller function index to the target function's index
     return ip;
@@ -290,7 +290,7 @@ short exec_ret(Stack *stack, Code *code, short ip, Memory *mem, const Function *
 
     /* Restore the previous state from the stack */
     short ret_ip = stack_pop(stack).val.addr;
-    mem->frame_ptr = stack_pop(stack).val.addr;
+    stack->frame_ptr = stack_pop(stack).val.addr;
     *caller_index = stack_pop(stack).val.addr;
 
     if (has_returned) {
