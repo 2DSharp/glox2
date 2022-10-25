@@ -10,11 +10,12 @@
 
 class Code {
 private:
-    size_t size;
     Bytecode * contents;
 public:
-    Code(Bytecode * contents, size_t size);
+    Code(Bytecode *contents);
     Bytecode code_fetch(int index);
+
+    void copy_contents(Code * code);
 };
 
 

@@ -1,6 +1,7 @@
 #include <dl_loader.h>
 #include "../include/exec.h"
 #include "../include/array_descriptor.h"
+#include "../include/dl_loader_factory.h"
 
 //#define  __get_data(bytecode, type) (*(type *) bytecode.val)
 
@@ -78,7 +79,7 @@ void exec_print(Stack *stack) {
             std::cout << v.val.b;
             break;
         case CHAR:
-            std::cout << v.val.s;
+            std::cout << v.val.c;
             break;
         case FLOAT:
             std::cout << v.val.f;
@@ -111,13 +112,16 @@ short exec_store(Stack *stack, Code *code, short ip, Memory *mem) {
 short exec_jmp(Code *code, short ip) {
     return (code_fetch(code, ++ip).val.n);
 }
-
+stack_obj_t create_parray(size_t size, int type, Memory * mem) {
+    GObject * obj = GObjectFactory::create_array_descriptor(size, type);
+    addr ref = mem->heap->allocate_contiguous_block(obj, size);
+    stack_obj_t res = {.type = ADDR, .val = {.addr = ref}};
+    return res;
+}
 short exec_newparray(Stack * stack, Code *code, short ip, Memory *mem) {
     stack_obj_t size = stack_pop(stack);
     stack_obj_t type = stack_pop(stack);
-    GObject * obj = GObjectFactory::create_array_descriptor(size.val.n, type.val.n);
-    addr ref = mem->heap->allocate_contiguous_block(obj, size.val.n);
-    stack_obj_t res = {.type = ADDR, .val = {.addr = ref}};
+    stack_obj_t res = create_parray(size.val.n, type.val.n, mem);
     stack_push(stack, res);
     return ++ip;
 }
@@ -185,7 +189,7 @@ void exec_ieq(Stack *stack) {
             is_equal.val.b = b.val.b == a.val.b;
             break;
         case CHAR:
-            is_equal.val.b = b.val.s == a.val.s;
+            is_equal.val.b = b.val.c == a.val.c;
             break;
         case FLOAT:
             is_equal.val.b = b.val.f == a.val.f;
@@ -214,7 +218,7 @@ void exec_ilt(Stack *stack) {
             is_less_than.val.b = a.val.b < b.val.b;
             break;
         case CHAR:
-            is_less_than.val.b = a.val.s < b.val.s;
+            is_less_than.val.b = a.val.c < b.val.c;
             break;
         case FLOAT:
             is_less_than.val.b = a.val.f < b.val.f;
@@ -230,27 +234,59 @@ void exec_pop(Stack *stack) {
     stack_pop(stack);
 }
 
+/**
+ * Loads data from the constant pool
+ * @param stack
+ * @param code
+ * @param ip
+ * @param mem
+ * @return
+ */
+short exec_cload(Stack *stack, Code *code, short ip, Memory *mem) {
+    addr constant_ref = code_fetch(code, ++ip).val.addr;
+    Constant * constant_obj = mem->constant_pool[constant_ref];
+    if (constant_obj->type == Constant::STRING) {
+        // create an array and load it
+        std::string str = (const char *) constant_obj;
+        stack_obj_t arr_index = create_parray(str.size(), CHAR, mem);
+        auto * descriptor = dynamic_cast<ArrayDescriptor *> (mem->heap->get_object(arr_index.val.addr));
+//        for (int i = 0; i < str.size(); i++) {
+//            auto * obj = new stack_obj_t;
+//            *obj = {.type = CHAR, .val.c = str.at(i)};
+//            GObject * arr_obj = GObjectFactory::create_primitive_object(obj);
+//            mem->heap->alloc(descriptor->get_address_from_index(i), arr_obj);
+//            stack_push(stack, arr_index);
+//            exec_call()
+//            // Call String library method to instantiate from an array of characters
+//        }
+    }
+    return ++ip;
+}
+
 short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function *fn_pool, short *caller_index) {
     short target_index = code_fetch(code, ++ip).val.addr;
     Function caller_fn = fn_pool[*caller_index];
     Function target_fn = fn_pool[target_index];
 
-    short fp_new = stack->frame_ptr + caller_fn.locals;
+    //short fp_new = stack->frame_ptr + caller_fn.n_args + caller_fn.locals + 3;
 
-    for (int i = 1; i <= target_fn.n_args; i++) {
-        stack_obj_t v = stack_pop(stack);
-        // Leave the fp, start from the next address otherwise it will overwrite whatever is in fp
-        stack->set_content(fp_new, target_fn.n_args - i, v);
+    stack_obj_t local_mem[target_fn.n_args];
+    for (int i = 0; i < target_fn.n_args; i++) {
+
+        local_mem[i] = stack_pop(stack);
     }
 
-    if (target_fn.func_type == fn_t::NATIVE) {
-        // Make a copy of the local variables into a subarray
-        stack_obj_t local_mem[target_fn.n_args];
-        for (int i = 0; i < target_fn.n_args; i++) {
 
-            local_mem[i] = stack->get_content(fp_new, i);
-        }
-        UnixDLLoader * loader = new UnixDLLoader(target_fn.lib_path);
+//    for (int i = 1; i <= target_fn.n_args; i++) {
+//        stack_obj_t v = stack_pop(stack);
+//        // Leave the fp, start from the next address otherwise it will overwrite whatever is in fp
+//        stack->set_content(fp_new, target_fn.n_args - i, v);
+//    }
+
+    if (target_fn.func_type == Function::NATIVE) {
+        // Make a copy of the local variables into a subarray
+
+        DLLoader * loader = get_dl_loader(target_fn.lib_path);
         loader->DLOpenLib();
         void (*native_func)(stack_obj_t*,std::string);
         native_func = reinterpret_cast<void (*)(stack_obj_t*, std::string)> (loader->DLGetInstance("_invoke_gnative_function"));
@@ -273,20 +309,32 @@ short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function 
     ptr.val.addr = ip + 1;
     stack_push(stack, ptr); // The IP where it's going to continue after returning
 
-    stack->frame_ptr = fp_new;
-    ip = fn_pool[target_index].addr;
+    stack->frame_ptr = stack->top;
+
+    for (int i = 0; i < target_fn.n_args; i++) {
+        stack_push(stack, local_mem[i]);
+    }
+    for (int i = 0; i < target_fn.locals; i++) {
+        stack->push({});
+    }
+
+
     *caller_index = target_index; // Sets the new caller function index to the target function's index
-    return ip;
+    code->copy_contents(&target_fn.code);
+    return 0; // call the 1st line of the target code
 }
 
 short exec_ret(Stack *stack, Code *code, short ip, Memory *mem, const Function *fn_pool, short *caller_index) {
     stack_obj_t ret_val;
-    int has_returned = fn_pool[*caller_index].return_type > 0;
+    Function func = fn_pool[*caller_index];
+    int has_returned = func.return_type > 0;
 
     if (has_returned) {
         /* Is not void */
         ret_val = stack_pop(stack);
     }
+
+    stack->decrement_sp(func.n_args + func.locals);
 
     /* Restore the previous state from the stack */
     short ret_ip = stack_pop(stack).val.addr;
@@ -296,7 +344,8 @@ short exec_ret(Stack *stack, Code *code, short ip, Memory *mem, const Function *
     if (has_returned) {
         stack_push(stack, ret_val);
     }
-
+    auto caller_func = fn_pool[*caller_index];
+    code->copy_contents(&caller_func.code);
     return ret_ip;
 }
 

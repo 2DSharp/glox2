@@ -19,7 +19,7 @@
 class VM {
 public:
     VM(size_t stack_size, Memory * mem);
-    void vm_run(Code * code_mem, const Function * func_pool, short func_index, int debug);
+    void vm_run(const Function * func_pool, short func_index, int debug);
     void vm_close();
     void vm_exec(Code * code_mem, const Opcode * opcode, const Function * func_pool, short * func_index);
 

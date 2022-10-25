@@ -4,17 +4,14 @@
 
 #include "../include/memory.h"
 
-Memory::Memory(unsigned int local_sz, unsigned int global_sz, unsigned int heap_sz)
+Memory::Memory(Constant * const_pool[], unsigned int global_sz, unsigned int heap_sz)
 {
-    global_sz = local_sz;
-    local_sz = global_sz;
+    constant_pool = const_pool;
     heap_sz = heap_sz;
-    frame_ptr = -1;
 
-    locals = new stack_obj_t [local_sz];
     heap = new Heap(heap_sz);
 }
 Memory::~Memory()
 {
-    delete[] locals;
+    //delete[] constant_pool;
 }

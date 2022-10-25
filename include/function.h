@@ -6,8 +6,10 @@
 #define GLOX_FUNCTION_H
 
 #include <string>
+#include "code.h"
 
-typedef struct fn_t {
+class Function {
+public:
     int locals;
     int n_args;
     short addr;
@@ -15,6 +17,9 @@ typedef struct fn_t {
     enum {GENERAL, NATIVE} func_type;
     std::string lib_path;
     std::string call_symbol;
-} Function;
+    Code code = Code(nullptr);
+
+
+} ;
 
 #endif //GLOX_FUNCTION_H

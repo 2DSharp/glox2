@@ -14,6 +14,7 @@ Stack::Stack(int size) {
     top = -1;
     this->size = size;
     this->contents = new stack_obj_t[size]();
+    this->frame_ptr = -1;
 }
 
 void Stack::debug_print() {
@@ -27,7 +28,7 @@ void Stack::debug_print() {
                 std::cout << contents[i].val.n;
                 break;
             case CHAR:
-                std::cout << contents[i].val.s;
+                std::cout << contents[i].val.c;
                 break;
             case FLOAT:
                 std::cout << contents[i].val.f;
@@ -44,10 +45,16 @@ void Stack::debug_print() {
         std::cout << " ";
     }
     std::cout << "]";
+    printf("\tSP: %d\n", top);
+
 }
 
 stack_obj_t Stack::pop() {
     return contents[top--];
+}
+
+void Stack::decrement_sp(int n) {
+    top = top - n;
 }
 
 Stack::~Stack() {

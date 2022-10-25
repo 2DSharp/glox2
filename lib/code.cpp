@@ -4,11 +4,16 @@
 
 #include "../include/code.h"
 
-Code::Code(Bytecode *contents, size_t size) {
+Code::Code(Bytecode *contents) {
     this->contents = contents;
-    this->size = size;
 }
 
 Bytecode Code::code_fetch(int index) {
     return contents[index];
 }
+
+void Code::copy_contents(Code * code) {
+    Code copy_code = *code;
+    this->contents = copy_code.contents;
+}
+

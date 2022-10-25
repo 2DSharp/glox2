@@ -11,12 +11,18 @@ VM::VM(size_t stack_size, Memory *mem) {
     this->state = ST_HALTED;
 }
 
-void VM::vm_run(Code *code_mem, const Function *func_pool, short func_index, int debug) {
+void VM::vm_run(const Function *func_pool, short func_index, int debug) {
     short code;
+    Code * code_mem = new Code(nullptr);
+    Function main = func_pool[func_index];
+    Code copy_main = main.code;
+    code_mem->copy_contents(&copy_main);
     Opcode opcodes[128];
+    for (int i = 0; i < main.locals; i++) {
+        stack->push({});
+    }
 
     opcode_runner_init(opcodes);
-    this->instr_ptr = func_pool[func_index].addr;
 
     code = get_code(code_mem->code_fetch(this->instr_ptr));
 
@@ -26,7 +32,7 @@ void VM::vm_run(Code *code_mem, const Function *func_pool, short func_index, int
 
         if (debug) {
             //printf("\tTop: %d\n", this->stack->top);
-            printf("IP: %03d\tOpcode: %04d\tFP: %02d ", this->instr_ptr, code, this->memory->frame_ptr);
+            printf("IP: %03d\tOpcode: %04d\tFP: %02d ", this->instr_ptr, code, this->stack->frame_ptr);
             // print the local memory
 //            printf(" Mem: [ ");
 //            for (int i = 0; i < 10; i++) {
@@ -55,7 +61,6 @@ void VM::vm_run(Code *code_mem, const Function *func_pool, short func_index, int
 
         if (debug) {
             stack->debug_print();
-            printf("\tSP: %d\n", stack->get_top());
         }
     }
 }

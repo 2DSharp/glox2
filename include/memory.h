@@ -7,17 +7,17 @@
 #include <algorithm>
 #include "stack.h"
 #include "Heap.h"
+#include "Constant.h"
 
 class Memory
 {
 public:
-    stack_obj_t * locals;
-    unsigned int local_sz;
+
     short * globals;
     unsigned int global_sz;
-    short frame_ptr;
+    Constant ** constant_pool;
     Heap * heap;
-    Memory(unsigned int local_sz, unsigned int global_sz, unsigned int heap_sz);
+    Memory(Constant * local_sz[], unsigned int global_sz, unsigned int heap_sz);
     ~Memory();
 } ;
 

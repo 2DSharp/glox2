@@ -36,6 +36,7 @@
 #define PALOAD 28
 #define PASTORE 29
 #define ALEN 30
+#define CLOAD 31
 
 #define OP 0
 #define INT 1
@@ -43,12 +44,13 @@
 #define FLOAT 3
 #define BOOL 4
 #define ADDR 5
+#define STR 6
 
 typedef union {
     short op;
     short addr;
     int n;
-    char s;
+    char c;
     float f;
     bool b;
 } Data;
