@@ -37,6 +37,10 @@
 #define PASTORE 29
 #define ALEN 30
 #define CLOAD 31
+#define SET 32
+#define GET 33
+#define NEW 34
+#define OCALL 35
 
 #define OP 0
 #define INT 1

@@ -6,9 +6,11 @@
 #define F_FIB 1
 #define F_PRINT 2
 #define F_ARR 3
+
+
 int main() {
     uint32_t stack_size = 2000;
-    auto * c = new Constant(Constant::STRING, (void *) "Hello");
+    auto * c = new Constant(Constant::STRING, "Hello");
     Constant * const_pool[] = {
             c
     };
@@ -121,7 +123,7 @@ int main() {
     */
     Function f_fib;
 //    f_fib.addr = 7;
-    f_fib.locals = 1;
+    f_fib.locals = 0;
     f_fib.n_args = 1;
     f_fib.return_type = 1;
     f_fib.code = code_fib;
@@ -141,7 +143,7 @@ int main() {
 
 
     //printf("IP: %d\n", vm->instr_ptr);
-    vm->vm_run(func_pool, F_MAIN, 1);
+   // vm->vm_run(func_pool, F_MAIN, 0);
 
     //prcintf("IP: %d\n", vm->instr_ptr);
     Bytecode arr_test[] = {
@@ -206,13 +208,32 @@ int main() {
             {OP, LOAD}, {ADDR, {.addr = 2}}, // arr.length
             {OP, ILT}, // i < arr.length
             {OP, JMPT}, {ADDR, {.addr = 71}},
-            {OP, CLOAD}, {ADDR, {.addr = 0}}, // references the symbol pool at addr 0
+//            {OP, CLOAD}, {ADDR, {.addr = 0}}, // references the symbol pool at addr 0
             {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // print arr[i]
             {OP, HALT},
     };
-//    code = new Code(arr_test);
-//
-//    vm->vm_run(code, func_pool, F_MAIN, 1);
+
+    Bytecode create_new_string_from_array[] = {
+            {OP, LOAD}, {ADDR, {.addr = 0}}, // load the array
+            {OP, NEW}, {ADDR, {.addr = 0x1e}}, // address of invocation method in constant pool
+            {OP, OCALL}, {ADDR, {.addr = 0x1f}} // invoke init
+    };
+
+    Bytecode ctor_string_from_arr[] = {
+            {OP, LOAD}, {ADDR, {.addr = 1}}, // array
+            {OP, LOAD}, {ADDR, {.addr = 0}}, // object ref
+            {OP, OCALL}, {ADDR, {.addr = 0x2}}
+    };
+
+    Bytecode set_char_arr_to_str_obj[] = {
+            {OP, LOAD}, {ADDR, {.addr = 1}}, // array
+            {OP, LOAD}, {ADDR, {.addr = 0}}, // object ref
+            {OP, SET}, {ADDR, {.addr = 0x3}}
+    };
+    Code code_arr_main(arr_test);
+    f_main.code = code_arr_main;
+    func_pool[F_MAIN] = f_main;
+    vm->vm_run(func_pool, F_MAIN, 0);
 //
 //    vm->vm_close();
 //    delete code;

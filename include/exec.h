@@ -2,56 +2,105 @@
 // Created by dedip on 08-10-2022.
 //
 
-#ifndef GLOX_EXEC_H
-#define GLOX_EXEC_H
+#ifndef GLOX_H
+#define GLOX_H
 
 #include "stack.h"
 #include "code.h"
 #include "memory.h"
 #include "function.h"
-#include "opcode.h"
 #include "bytecode.h"
 #include "dl_loader.h"
 #include "g_object_factory.h"
 #include <iostream>
 
-void exec_nop();
+class Exec {
+private:
 
-void exec_iadd(Stack *stack);
+    Stack *stack;
+    Code *code;
+    Memory *mem;
+    Function *fn_pool;
+    short call_fn(short target_index, short ip, short *caller_index);
+    Bytecode code_fetch(short e_index);
 
-void exec_isub(Stack *stack);
+public:
+    typedef void (Exec::*op_none)(void);
 
-void exec_imul(Stack *stack);
+    typedef void (Exec::*op_noargs)(void);
+    typedef short (Exec::*op_args)(short ip);
+    typedef short (Exec::*op_caller)(short ip, short * caller_index);
 
-void exec_idiv(Stack *stack);
+    typedef enum op_type {
+        NONE,
+        NOARGS,
+        WITH_ARGS,
+        CALLER,
+        INVALID
+    } OpType;
+    typedef struct opcode_t
+    {
+        short opcode;
+        OpType type;
+        union {
+            op_none exec_none;
+            op_noargs exec_noargs;
+            op_args exec_args;
+            op_caller exec_caller;
+        };
+    } Opcode;
+    Exec(Stack *stack, Code *code, Memory *mem, Function *fn_pool);
+    void e_nop();
 
-short exec_iconst(Stack *stack, Code *code, short ip);
+    void e_iadd();
 
-void exec_print(Stack *stack);
+    void e_isub();
 
-void exec_println(Stack *stack);
+    void e_imul();
 
-short exec_load(Stack *stack, const Code *code, short ip, Memory *mem);
+    void e_idiv();
 
-short exec_store(Stack *stack, const Code *code, short ip, Memory *mem);
+    short e_iconst(short ip);
 
-short exec_jmp(const Code *code, short ip);
+    void e_print();
 
-short exec_jmpt(Stack *stack, const Code *code, short ip);
+    void e_println();
 
-void exec_ieq(Stack *stack);
+    short e_load(short ip);
 
-void exec_ilt(Stack *stack);
+    short e_store(short ip);
 
-void exec_pop(Stack *stack);
+    short e_jmp(short ip);
 
-short exec_call(Stack *stack, const Code *code, short ip, Memory *mem, const Function *fn_pool, int *caller_index);
+    short e_jmpt(short ip);
 
-short exec_ret(Stack *stack, const Code *code, short ip, Memory *mem, const Function *fn_pool, int *caller_index);
-short exec_newparray(Stack * stack, Code *code, short ip, Memory *mem);
-short exec_paload(Stack *stack, Code *code, short ip, Memory *mem);
-short exec_alen(Stack *stack, Code *code, short ip, Memory *mem);
-short exec_pastore(Stack *stack, Code *code, short ip, Memory *mem);
-void opcode_runner_init(Opcode *ops);
+    void e_ieq();
 
-#endif //GLOX_EXEC_H
+    void e_ilt();
+
+    void e_pop();
+
+    short e_call(short ip,short *caller_index);
+
+    short e_ret(short ip,short *caller_index);
+
+    short e_newparray(short ip);
+
+    short e_paload(short ip);
+
+    short e_alen(short ip);
+
+    short e_pastore(short ip);
+
+    void opcode_runner_init(Opcode *ops);
+
+    short e_set(short ip);
+
+    short e_new(short ip);
+
+    short e_ocall(short ip, short *caller_index);
+
+    short e_cload(short ip, short *caller_index);
+};
+
+#endif //GLOX_H

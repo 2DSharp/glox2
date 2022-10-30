@@ -11,7 +11,6 @@
 #include "../include/code.h"
 #include "../include/bytecode.h"
 #include "../include/function.h"
-#include "../include/opcode.h"
 #include "../include/stack.h"
 #include "../include/exec.h"
 #include <iostream>
@@ -19,9 +18,8 @@
 class VM {
 public:
     VM(size_t stack_size, Memory * mem);
-    void vm_run(const Function * func_pool, short func_index, int debug);
+    void vm_run(Function * func_pool, short func_index, int debug);
     void vm_close();
-    void vm_exec(Code * code_mem, const Opcode * opcode, const Function * func_pool, short * func_index);
 
 private:
     typedef enum state_t
@@ -33,6 +31,8 @@ private:
     State state;
     static short get_code(Bytecode code);
 
+
+    void vm_exec(Exec exec, Code *code_mem, const Exec::Opcode *opcode, const Function *func_pool, short *func_index);
 };
 
 

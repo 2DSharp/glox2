@@ -1,12 +1,14 @@
 #include <dl_loader.h>
+#include <sstream>
 #include "../include/exec.h"
 #include "../include/array_descriptor.h"
 #include "../include/dl_loader_factory.h"
+#include "../include/obj_descriptor.h"
 
-//#define  __get_data(bytecode, type) (*(type *) bytecode.val)
 
-
-void exec_nop() {
+Exec::Exec(Stack *stack, Code *code, Memory *mem, Function *fn_pool) : stack(stack), code(code), mem(mem), fn_pool(fn_pool) {
+}
+void Exec::e_nop() {
     return;
 }
 
@@ -14,7 +16,7 @@ stack_obj_t stack_pop(Stack *stack) {
     return stack->pop();
 }
 
-Bytecode code_fetch(Code *code, short index) {
+Bytecode Exec::code_fetch(short index) {
     return code->code_fetch(index);
 }
 
@@ -22,7 +24,7 @@ int stack_push(Stack *stack, stack_obj_t val) {
     return stack->push(val);
 }
 
-void exec_iadd(Stack *stack) {
+void Exec::e_iadd() {
     stack_obj_t b = stack_pop(stack);
     stack_obj_t a = stack_pop(stack);
     stack_obj_t res;
@@ -31,7 +33,7 @@ void exec_iadd(Stack *stack) {
     stack_push(stack, res);
 }
 
-void exec_isub(Stack *stack) {
+void Exec::e_isub() {
     short b = stack_pop(stack).val.n;
     short a = stack_pop(stack).val.n;
 
@@ -41,7 +43,7 @@ void exec_isub(Stack *stack) {
     stack_push(stack, res);
 }
 
-void exec_imul(Stack *stack) {
+void Exec::e_imul() {
     short b = stack_pop(stack).val.n;
     short a = stack_pop(stack).val.n;
 
@@ -51,7 +53,7 @@ void exec_imul(Stack *stack) {
     stack_push(stack, res);
 }
 
-void exec_idiv(Stack *stack) {
+void Exec::e_idiv() {
     short b = stack_pop(stack).val.n;
     short a = stack_pop(stack).val.n;
 
@@ -62,13 +64,13 @@ void exec_idiv(Stack *stack) {
     stack_push(stack, res);
 }
 
-short exec_iconst(Stack *stack, Code *code, short ip) {
+short Exec::e_iconst(short ip) {
     stack_obj_t v = code->code_fetch(++ip);
     stack_push(stack, v);
     return ++ip;
 }
 
-void exec_print(Stack *stack) {
+void Exec::e_print() {
     std::cout << "Hello";
     stack_obj_t v = stack_pop(stack);
     switch (v.type) {
@@ -90,27 +92,26 @@ void exec_print(Stack *stack) {
 }
 
 /* Temporary till we start supporting ASCII prints */
-void exec_println(Stack *stack) {
-    exec_print(stack);
+void Exec::e_println() {
+    //exec_print(stack);
     printf("\n");
 }
 
-short exec_load(Stack *stack, Code *code, short ip, Memory *mem) {
-    short offset = code_fetch(code, ++ip).val.addr;
+short Exec::e_load(short ip) {
+    short offset = code_fetch(++ip).val.addr;
     stack_push(stack, stack->get_content(offset));
     return ++ip;
 }
 
+short Exec::e_store(short ip) {
 
-short exec_store(Stack *stack, Code *code, short ip, Memory *mem) {
-
-    short offset = code_fetch(code, ++ip).val.addr;
+    short offset = code_fetch(++ip).val.addr;
     stack->set_content(offset, stack_pop(stack));
     return ++ip;
 }
 
-short exec_jmp(Code *code, short ip) {
-    return (code_fetch(code, ++ip).val.n);
+short Exec::e_jmp(short ip) {
+    return (code_fetch(++ip).val.n);
 }
 stack_obj_t create_parray(size_t size, int type, Memory * mem) {
     GObject * obj = GObjectFactory::create_array_descriptor(size, type);
@@ -118,7 +119,7 @@ stack_obj_t create_parray(size_t size, int type, Memory * mem) {
     stack_obj_t res = {.type = ADDR, .val = {.addr = ref}};
     return res;
 }
-short exec_newparray(Stack * stack, Code *code, short ip, Memory *mem) {
+short Exec::e_newparray(short ip) {
     stack_obj_t size = stack_pop(stack);
     stack_obj_t type = stack_pop(stack);
     stack_obj_t res = create_parray(size.val.n, type.val.n, mem);
@@ -126,7 +127,7 @@ short exec_newparray(Stack * stack, Code *code, short ip, Memory *mem) {
     return ++ip;
 }
 
-short exec_paload(Stack *stack, Code *code, short ip, Memory *mem) {
+short Exec::e_paload(short ip) {
     stack_obj_t arr_ref = stack_pop(stack);
     auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
     stack_obj_t index = stack_pop(stack);
@@ -136,7 +137,7 @@ short exec_paload(Stack *stack, Code *code, short ip, Memory *mem) {
     return ++ip;
 }
 
-short exec_alen(Stack *stack, Code *code, short ip, Memory *mem) {
+short Exec::e_alen(short ip) {
     stack_obj_t arr_ref = stack_pop(stack);
     auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
     stack_obj_t len = {.type = INT, .val = {.n = static_cast<int>(arr_descriptor->_size)}};
@@ -144,7 +145,7 @@ short exec_alen(Stack *stack, Code *code, short ip, Memory *mem) {
     return ++ip;
 }
 
-short exec_pastore(Stack *stack, Code *code, short ip, Memory *mem) {
+short Exec::e_pastore(short ip) {
     stack_obj_t arr_ref = stack_pop(stack);
     auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
     stack_obj_t index = stack_pop(stack);
@@ -154,12 +155,40 @@ short exec_pastore(Stack *stack, Code *code, short ip, Memory *mem) {
     return ++ip;
 }
 
+int resolve_const(Memory * mem, short addr) {
+    int res;
+    std::istringstream in(mem->constant_pool[addr]->val);
+    in >> res;
+    return res;
+}
+
+short Exec::e_set(short ip) {
+    stack_obj_t obj_ref = stack_pop(stack);
+    stack_obj_t arr_ref = stack_pop(stack);
+    auto obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(obj_ref.val.addr));
+    auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
+    stack_obj_t field_index = code_fetch(++ip);
+    obj->set_field(resolve_const(mem, field_index.val.addr), arr_descriptor);
+
+    return ++ip;
+}
+
+short Exec::e_new(short ip) {
+    stack_obj_t cpool_ref = code_fetch(++ip);
+    std::string class_name = mem->constant_pool[cpool_ref.val.addr]->val;
+    //ClassDef* context = get_class_context(class_name);
+//    GObject* descriptor = GObjectFactory::create_object_descriptor(context);
+//    addr address = mem->heap->alloc(descriptor);
+//    descriptor->set_address(address);
+    return ++ip;
+}
+
 /*
  * Conditional Jump
  * If true on top of stack
  */
-short exec_jmpt(Stack *stack, Code *code, short ip) {
-    short addr = code_fetch(code, ++ip).val.addr;
+short Exec::e_jmpt(short ip) {
+    short addr = code_fetch(++ip).val.addr;
     if (stack_pop(stack).val.b) {
         ip = addr;
     } else {
@@ -172,7 +201,7 @@ short exec_jmpt(Stack *stack, Code *code, short ip) {
  * if equals, set stack top to true
  * To be used often with jmps
  */
-void exec_ieq(Stack *stack) {
+void Exec::e_ieq() {
     stack_obj_t b = stack_pop(stack);
     stack_obj_t a = stack_pop(stack);
 
@@ -201,7 +230,7 @@ void exec_ieq(Stack *stack) {
     stack_push(stack, is_equal);
 }
 
-void exec_ilt(Stack *stack) {
+void Exec::e_ilt() {
     stack_obj_t b = stack_pop(stack);
     stack_obj_t a = stack_pop(stack);
 
@@ -230,52 +259,19 @@ void exec_ilt(Stack *stack) {
     stack_push(stack, is_less_than);
 }
 
-void exec_pop(Stack *stack) {
+void Exec::e_pop() {
     stack_pop(stack);
 }
 
-/**
- * Loads data from the constant pool
- * @param stack
- * @param code
- * @param ip
- * @param mem
- * @return
- */
-short exec_cload(Stack *stack, Code *code, short ip, Memory *mem) {
-    addr constant_ref = code_fetch(code, ++ip).val.addr;
-    Constant * constant_obj = mem->constant_pool[constant_ref];
-    if (constant_obj->type == Constant::STRING) {
-        // create an array and load it
-        std::string str = (const char *) constant_obj;
-        stack_obj_t arr_index = create_parray(str.size(), CHAR, mem);
-        auto * descriptor = dynamic_cast<ArrayDescriptor *> (mem->heap->get_object(arr_index.val.addr));
-//        for (int i = 0; i < str.size(); i++) {
-//            auto * obj = new stack_obj_t;
-//            *obj = {.type = CHAR, .val.c = str.at(i)};
-//            GObject * arr_obj = GObjectFactory::create_primitive_object(obj);
-//            mem->heap->alloc(descriptor->get_address_from_index(i), arr_obj);
-//            stack_push(stack, arr_index);
-//            exec_call()
-//            // Call String library method to instantiate from an array of characters
-//        }
-    }
-    return ++ip;
-}
-
-short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function *fn_pool, short *caller_index) {
-    short target_index = code_fetch(code, ++ip).val.addr;
+short Exec::call_fn(short target_index, short ip, short *caller_index) {
     Function caller_fn = fn_pool[*caller_index];
     Function target_fn = fn_pool[target_index];
-
-    //short fp_new = stack->frame_ptr + caller_fn.n_args + caller_fn.locals + 3;
 
     stack_obj_t local_mem[target_fn.n_args];
     for (int i = 0; i < target_fn.n_args; i++) {
 
         local_mem[i] = stack_pop(stack);
     }
-
 
 //    for (int i = 1; i <= target_fn.n_args; i++) {
 //        stack_obj_t v = stack_pop(stack);
@@ -318,13 +314,64 @@ short exec_call(Stack *stack, Code *code, short ip, Memory *mem, const Function 
         stack->push({});
     }
 
-
     *caller_index = target_index; // Sets the new caller function index to the target function's index
     code->copy_contents(&target_fn.code);
     return 0; // call the 1st line of the target code
 }
+short Exec::e_call(short ip, short *caller_index) {
+    short target_index = code_fetch(++ip).val.addr;
+    return call_fn(target_index, ip, caller_index);
+}
+short Exec::e_ocall(short ip, short *caller_index) {
+//    ObjectDescriptor * obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(stack_pop(stack).val.addr));
+//    short target_cpool_index = code_fetch(++ip).val.addr;
+//    short target_index = obj->get_context()->get_function_index(mem->constant_pool[target_cpool_index]->val);
+//    Function fn = fn_pool[target_index];
+//    auto current_context = fn_pool[*caller_index].context;
+//    switch (fn.scope) {
+//        case Function::PRIVATE:
+//            if (current_context != obj->get_context()) {
+//                // throw some exception
+//            }
+//            return call_fn(target_index, ip, caller_index);
+//        case Function::PROTECTED:
+//        case Function::PUBIC:
+//            return ip + 1;
+//
+//    }
+    return ip;
+}
+/**
+ * Loads data from the constant pool
+ * @param stack
+ * @param code
+ * @param ip
+ * @param mem
+ * @return
+ */
+short Exec::e_cload(short ip, short *caller_index) {
+    addr constant_ref = code_fetch(++ip).val.addr;
+    Constant * constant_obj = mem->constant_pool[constant_ref];
+    if (constant_obj->type == Constant::STRING) {
+        // create an array and load it
+//        std::string str = (const char *) constant_obj;
+//        stack_obj_t arr_index = create_parray(str.size(), CHAR, mem);
+//        auto * descriptor = dynamic_cast<ArrayDescriptor *> (mem->heap->get_object(arr_index.val.addr));
+//        for (int i = 0; i < str.size(); i++) {
+//            auto * obj = new stack_obj_t;
+//            *obj = {.type = CHAR, .val.c = str.at(i)};
+//            GObject * arr_obj = GObjectFactory::create_primitive_object(obj);
+//            mem->heap->alloc(descriptor->get_address_from_index(i), arr_obj);
+//        }
+//        stack_push(stack, arr_index);
 
-short exec_ret(Stack *stack, Code *code, short ip, Memory *mem, const Function *fn_pool, short *caller_index) {
+        //find function index from symbol table
+        // Call String library method to instantiate from an array of characters
+        //return call_fn(stack, code, target_index, ip, fn_pool, caller_index);
+    }
+    return ++ip;
+}
+short Exec::e_ret(short ip, short *caller_index) {
     stack_obj_t ret_val;
     Function func = fn_pool[*caller_index];
     int has_returned = func.return_type > 0;
@@ -334,7 +381,7 @@ short exec_ret(Stack *stack, Code *code, short ip, Memory *mem, const Function *
         ret_val = stack_pop(stack);
     }
 
-    stack->decrement_sp(func.n_args + func.locals);
+    stack->decrement_sp(func.total_local_vars());
 
     /* Restore the previous state from the stack */
     short ret_ip = stack_pop(stack).val.addr;
@@ -349,62 +396,66 @@ short exec_ret(Stack *stack, Code *code, short ip, Memory *mem, const Function *
     return ret_ip;
 }
 
-void opcode_runner_init(Opcode *ops) {
-    ops[NOP].type = NONE;
-    ops[NOP].exec_none = exec_nop;
+void Exec::opcode_runner_init(Opcode *ops) {
+    ops[NOP].type = Exec::NONE;
+    ops[NOP].exec_none = &Exec::e_nop;
 
     ops[IADD].type = NOARGS;
-    ops[IADD].exec_noargs = exec_iadd;
+    ops[IADD].exec_noargs = &Exec::e_iadd;
+
+ /*   Exec e;
+    (e.*ops[IADD].exec_noargs)();*/
 
     ops[ISUB].type = NOARGS;
-    ops[ISUB].exec_noargs = exec_isub;
+    ops[ISUB].exec_noargs = &Exec::e_isub;
 
     ops[IMUL].type = NOARGS;
-    ops[IMUL].exec_noargs = exec_imul;
+    ops[IMUL].exec_noargs = &Exec::e_imul;
 
     ops[IDIV].type = NOARGS;
-    ops[IDIV].exec_noargs = exec_idiv;
+    ops[IDIV].exec_noargs = &Exec::e_idiv;
 
     ops[ICONST].type = WITH_ARGS;
-    ops[ICONST].exec_args = exec_iconst;
+    ops[ICONST].exec_args = &Exec::e_iconst;
 
     ops[PRINT].type = NOARGS;
-    ops[PRINT].exec_noargs = exec_print;
+    ops[PRINT].exec_noargs = &Exec::e_print;
 
     ops[PRINTLN].type = NOARGS;
-    ops[PRINTLN].exec_noargs = exec_println;
+    ops[PRINTLN].exec_noargs = &Exec::e_println;
 
-    ops[LOAD].type = MEMORY_HANDLER;
-    ops[LOAD].exec_mem = exec_load;
+    ops[LOAD].type = WITH_ARGS;
+    ops[LOAD].exec_args = &Exec::e_load;
 
-    ops[STORE].type = MEMORY_HANDLER;
-    ops[STORE].exec_mem = exec_store;
+    ops[STORE].type = WITH_ARGS;
+    ops[STORE].exec_args = &Exec::e_store;
 
-    ops[NEW_PARRAY].type = MEMORY_HANDLER;
-    ops[NEW_PARRAY].exec_mem = exec_newparray;
+    ops[NEW_PARRAY].type = WITH_ARGS;
+    ops[NEW_PARRAY].exec_args = &Exec::e_newparray;
 
-    ops[PALOAD] = {.type = MEMORY_HANDLER, .exec_mem = exec_paload};
-    ops[PASTORE] = {.type = MEMORY_HANDLER, .exec_mem = exec_pastore};
-    ops[ALEN] = {.type = MEMORY_HANDLER, .exec_mem = exec_alen};
+    ops[PALOAD] = {.type = WITH_ARGS, .exec_args = &Exec::e_paload};
+    ops[PASTORE] = {.type = WITH_ARGS, .exec_args = &Exec::e_pastore};
+    ops[ALEN] = {.type = WITH_ARGS, .exec_args = &Exec::e_alen};
 
-    ops[JMP].type = UNCONDITIONAL_BRANCH;
-    ops[JMP].exec_ujmp = exec_jmp;
+    ops[JMP].type = WITH_ARGS;
+    ops[JMP].exec_args = &Exec::e_jmp;
 
-    ops[JMPT].type = CONDITIONAL_BRANCH;
-    ops[JMPT].exec_args = exec_jmpt;
+    ops[JMPT].type = WITH_ARGS;
+    ops[JMPT].exec_args = &Exec::e_jmpt;
 
     ops[ILT].type = NOARGS;
-    ops[ILT].exec_noargs = exec_ilt;
+    ops[ILT].exec_noargs = &Exec::e_ilt;
 
     ops[IEQ].type = NOARGS;
-    ops[IEQ].exec_noargs = exec_ieq;
+    ops[IEQ].exec_noargs = &Exec::e_ieq;
 
     ops[POP].type = NOARGS;
-    ops[POP].exec_noargs = exec_pop;
+    ops[POP].exec_noargs = &Exec::e_pop;
 
     ops[CALL].type = CALLER;
-    ops[CALL].exec_caller = exec_call;
+    ops[CALL].exec_caller = &Exec::e_call;
 
     ops[RET].type = CALLER;
-    ops[RET].exec_caller = exec_ret;
+    ops[RET].exec_caller = &Exec::e_ret;
 }
+

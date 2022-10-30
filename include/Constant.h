@@ -18,10 +18,10 @@ public:
         CLASS
     } type;
 
-    Constant(Type type, void * val);
+    Constant(Type type, const char * val);
 
 
-    void * val;
+    const char * val;
     addr ref;
 };
 

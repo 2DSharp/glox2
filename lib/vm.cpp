@@ -11,24 +11,26 @@ VM::VM(size_t stack_size, Memory *mem) {
     this->state = ST_HALTED;
 }
 
-void VM::vm_run(const Function *func_pool, short func_index, int debug) {
+void VM::vm_run(Function *func_pool, short func_index, int debug) {
     short code;
-    Code * code_mem = new Code(nullptr);
+    Code *code_mem = new Code(nullptr);
     Function main = func_pool[func_index];
     Code copy_main = main.code;
     code_mem->copy_contents(&copy_main);
-    Opcode opcodes[128];
+    Exec::Opcode opcodes[128];
     for (int i = 0; i < main.locals; i++) {
         stack->push({});
     }
 
-    opcode_runner_init(opcodes);
+    Exec exec(stack, code_mem, memory, func_pool);
+
+    exec.opcode_runner_init(opcodes);
 
     code = get_code(code_mem->code_fetch(this->instr_ptr));
 
     while (code != HALT && this->state != ST_INVALID) {
         /** Decode **/
-        Opcode opcode = opcodes[code];
+        Exec::Opcode opcode = opcodes[code];
 
         if (debug) {
             //printf("\tTop: %d\n", this->stack->top);
@@ -42,9 +44,9 @@ void VM::vm_run(const Function *func_pool, short func_index, int debug) {
             printf(" Heap: [ ");
 
             for (int i = 0; i < 10; i++) {
-                GObject * heap_obj = this->memory->heap->get_object(i);
+                GObject *heap_obj = this->memory->heap->get_object(i);
                 if (heap_obj != nullptr && heap_obj->_type == GObject::PRIMITIVE) {
-                    printf("{T: %d D: %d I: %d} ",heap_obj->_data.type, heap_obj->_data.val.n, i);
+                    printf("{T: %d D: %d I: %d} ", heap_obj->_data.type, heap_obj->_data.val.n, i);
                 }
                 if (heap_obj != nullptr && heap_obj->_type == GObject::ARRAY) {
                     auto arr = dynamic_cast<ArrayDescriptor *>(heap_obj);
@@ -56,7 +58,7 @@ void VM::vm_run(const Function *func_pool, short func_index, int debug) {
             //printf("fu: %d",func_pool[func_index].n_args);
         }
         /** Execute */
-        vm_exec(code_mem, &opcode, func_pool, &func_index);
+        vm_exec(exec, code_mem, &opcode, func_pool, &func_index);
         code = get_code(code_mem->code_fetch(this->instr_ptr));
 
         if (debug) {
@@ -69,30 +71,27 @@ void VM::vm_close() {
     delete stack;
 }
 
-void VM::vm_exec(Code *code_mem, const Opcode *opcode, const Function *func_pool, short *func_index) {
+void VM::vm_exec(Exec exec, Code *code_mem, const Exec::Opcode *opcode, const Function *func_pool, short *func_index) {
     this->state = ST_RUNNING;
     switch (opcode->type) {
-        case NOARGS:
-            opcode->exec_noargs(this->stack);
+        case Exec::NOARGS: {
+            auto ptr = opcode->exec_noargs;
+            (exec.*ptr)();
             ++this->instr_ptr;
             break;
-        case WITH_ARGS:
-        case CONDITIONAL_BRANCH:
-            this->instr_ptr = opcode->exec_args(this->stack, code_mem, this->instr_ptr);
+        }
+        case Exec::WITH_ARGS: {
+            auto ptr = opcode->exec_args;
+            instr_ptr = (exec.*ptr)(instr_ptr);
             break;
-        case UNCONDITIONAL_BRANCH:
-            this->instr_ptr = opcode->exec_ujmp(code_mem, this->instr_ptr);
-            break;
-        case MEMORY_HANDLER:
+        }
 
-            this->instr_ptr = opcode->exec_mem(this->stack, code_mem, this->instr_ptr, this->memory);
+        case Exec::CALLER: {
+            auto ptr = opcode->exec_caller;
+            instr_ptr = (exec.*ptr)(instr_ptr, func_index);
             break;
-
-        case CALLER:
-            this->instr_ptr = opcode->exec_caller(this->stack, code_mem, this->instr_ptr, this->memory, func_pool, func_index);
-            break;
-
-        case NONE:
+        }
+        case Exec::NONE:
             //opcode->exec_none();
             ++this->instr_ptr;
             break;

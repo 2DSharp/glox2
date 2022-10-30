@@ -4,6 +4,6 @@
 
 #include "../include/Constant.h"
 
-Constant::Constant(Type type, void * val) : type(type), val(val) {
+Constant::Constant(Constant::Type type, const char *val): type(type), val(val) {
 
 }
