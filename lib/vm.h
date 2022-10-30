@@ -17,7 +17,7 @@
 
 class VM {
 public:
-    VM(size_t stack_size, Memory * mem);
+    VM(size_t stack_size, Memory * mem, std::map<std::string, ClassDef*> *loaded_classes);
     void vm_run(Function * func_pool, short func_index, int debug);
     void vm_close();
 
@@ -33,6 +33,8 @@ private:
 
 
     void vm_exec(Exec exec, Code *code_mem, const Exec::Opcode *opcode, const Function *func_pool, short *func_index);
+
+    std::map<std::string, ClassDef *> *loaded_classes;
 };
 
 

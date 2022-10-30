@@ -6,20 +6,47 @@
 #define F_FIB 1
 #define F_PRINT 2
 #define F_ARR 3
+#define STR_SETVAL 4
+#define STR_GETVAL 5
 
 
 int main() {
     uint32_t stack_size = 2000;
     auto * c = new Constant(Constant::STRING, "Hello");
     Constant * const_pool[] = {
-            c
+            new Constant(Constant::STRING, "Hello"),
+            new Constant(Constant::CLASS, "String"),
+            new Constant(Constant::FUNC, "init"),
+            new Constant(Constant::VAR, "value"),
+            new Constant(Constant::FUNC, "setValue"),
+            new Constant(Constant::FUNC, "getValue"),
     };
 
-    Memory *mem = new Memory(const_pool,
+    auto *mem = new Memory(const_pool,
                              1024,
                              2048);
 
-    VM *vm = new VM(stack_size, mem);
+    // Run classloader here - forEach class file, generate the symbol tables and push to the class lut
+    std::map<std::string, ClassDef*> loaded_classes;
+    std::map<std::string, int> fn_table;
+    fn_table["setValue"] = STR_SETVAL;
+    fn_table["getValue"] = STR_GETVAL;
+    std::map<std::string, int> var_table;
+    var_table["value"] = 0;
+    auto *string_class = new ClassDef("String", "glox/core/type", fn_table, var_table);
+
+    Bytecode set_char_arr_to_str_obj[] = {
+            {OP, LOAD}, {ADDR, {.addr = 1}}, // array
+            {OP, LOAD}, {ADDR, {.addr = 0}}, // object ref
+            {OP, SET}, {ADDR, {.addr = 0x3}} // field name from constant pool
+    };
+    Code arr_setter_code(set_char_arr_to_str_obj);
+    Function str_setVal = { .locals = 0, .n_args = 1, .scope = Function::PUBIC, .context = string_class, .return_type = 0, .code = arr_setter_code};
+    Function str_getVal = { .locals = 0, .n_args = 0, .scope = Function::PUBIC, .context = string_class,  .return_type = 1, .code = arr_setter_code};
+
+    loaded_classes["glox/core/type/String"] = string_class;
+
+    VM *vm = new VM(stack_size, mem, &loaded_classes);
 
     /* short instrs[] = { ICONST, 0,
                STORE, 1,
@@ -60,7 +87,6 @@ int main() {
             {INT, {.n = 20}},
             {OP,  {PRINTLN}},
             {OP, {HALT}}
-
     };
 
 
@@ -208,28 +234,24 @@ int main() {
             {OP, LOAD}, {ADDR, {.addr = 2}}, // arr.length
             {OP, ILT}, // i < arr.length
             {OP, JMPT}, {ADDR, {.addr = 71}},
-//            {OP, CLOAD}, {ADDR, {.addr = 0}}, // references the symbol pool at addr 0
+//            {OP, CLOAD}, {ADDR, {.addr = 0x0}}, // references the symbol pool at addr 0
             {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // print arr[i]
             {OP, HALT},
     };
 
     Bytecode create_new_string_from_array[] = {
             {OP, LOAD}, {ADDR, {.addr = 0}}, // load the array
-            {OP, NEW}, {ADDR, {.addr = 0x1e}}, // address of invocation method in constant pool
-            {OP, OCALL}, {ADDR, {.addr = 0x1f}} // invoke init
+            {OP, NEW}, {ADDR, {.addr = 0x1}}, // address of String in constant pool
+            {OP, OCALL}, {ADDR, {.addr = 0x2}} // address of invocation method in constant pool - init()
     };
 
     Bytecode ctor_string_from_arr[] = {
             {OP, LOAD}, {ADDR, {.addr = 1}}, // array
             {OP, LOAD}, {ADDR, {.addr = 0}}, // object ref
-            {OP, OCALL}, {ADDR, {.addr = 0x2}}
+            {OP, OCALL}, {ADDR, {.addr = 0x4}} // setValue
     };
 
-    Bytecode set_char_arr_to_str_obj[] = {
-            {OP, LOAD}, {ADDR, {.addr = 1}}, // array
-            {OP, LOAD}, {ADDR, {.addr = 0}}, // object ref
-            {OP, SET}, {ADDR, {.addr = 0x3}}
-    };
+
     Code code_arr_main(arr_test);
     f_main.code = code_arr_main;
     func_pool[F_MAIN] = f_main;

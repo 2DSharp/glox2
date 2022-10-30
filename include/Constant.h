@@ -15,7 +15,8 @@ public:
     enum Type {
         STRING,
         FUNC,
-        CLASS
+        CLASS,
+        VAR
     } type;
 
     Constant(Type type, const char * val);

@@ -21,8 +21,10 @@ private:
     Code *code;
     Memory *mem;
     Function *fn_pool;
+    std::map<std::string, ClassDef*> *loaded_classes;
     short call_fn(short target_index, short ip, short *caller_index);
     Bytecode code_fetch(short e_index);
+    ClassDef *get_class_context(const std::string& class_name);
 
 public:
     typedef void (Exec::*op_none)(void);
@@ -49,7 +51,7 @@ public:
             op_caller exec_caller;
         };
     } Opcode;
-    Exec(Stack *stack, Code *code, Memory *mem, Function *fn_pool);
+    Exec(Stack *stack, Code *code, Memory *mem, Function *fn_pool, std::map<std::string, ClassDef*> *loaded_classes);
     void e_nop();
 
     void e_iadd();
@@ -101,6 +103,7 @@ public:
     short e_ocall(short ip, short *caller_index);
 
     short e_cload(short ip, short *caller_index);
+
 };
 
 #endif //GLOX_H

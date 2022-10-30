@@ -8,6 +8,7 @@
 
 #include <string>
 #include <map>
+#include <utility>
 #include "constants.h"
 
 class ClassDef {
@@ -19,6 +20,11 @@ private:
     std::map<std::string, int> var_table;
 
 public:
+    ClassDef(std::string name, std::string nameSpace, std::map<std::string, int> fnTable,
+             std::map<std::string, int> varTable) : name(std::move(name)), name_space(std::move(nameSpace)), fn_table(std::move(fnTable)),
+                                                           var_table(std::move(varTable)) {
+    }
+
     int get_function_index(const std::string &);
 
     int get_var_index(const std::string &var_name);

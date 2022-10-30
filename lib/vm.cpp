@@ -4,11 +4,12 @@
 
 #include "vm.h"
 
-VM::VM(size_t stack_size, Memory *mem) {
+VM::VM(size_t stack_size, Memory *mem, std::map<std::string, ClassDef*> *loaded_classes) {
     this->stack = new Stack(stack_size);
     this->instr_ptr = 0;
     this->memory = mem;
     this->state = ST_HALTED;
+    this->loaded_classes = loaded_classes;
 }
 
 void VM::vm_run(Function *func_pool, short func_index, int debug) {
@@ -22,7 +23,7 @@ void VM::vm_run(Function *func_pool, short func_index, int debug) {
         stack->push({});
     }
 
-    Exec exec(stack, code_mem, memory, func_pool);
+    Exec exec(stack, code_mem, memory, func_pool, loaded_classes);
 
     exec.opcode_runner_init(opcodes);
 

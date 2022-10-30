@@ -1,12 +1,14 @@
 #include <dl_loader.h>
 #include <sstream>
+#include <utility>
 #include "../include/exec.h"
 #include "../include/array_descriptor.h"
 #include "../include/dl_loader_factory.h"
 #include "../include/obj_descriptor.h"
 
 
-Exec::Exec(Stack *stack, Code *code, Memory *mem, Function *fn_pool) : stack(stack), code(code), mem(mem), fn_pool(fn_pool) {
+Exec::Exec(Stack *stack, Code *code, Memory *mem, Function *fn_pool, std::map<std::string, ClassDef*> *loaded_classes) :
+stack(stack), code(code), mem(mem), fn_pool(fn_pool), loaded_classes(loaded_classes) {
 }
 void Exec::e_nop() {
     return;
@@ -164,11 +166,11 @@ int resolve_const(Memory * mem, short addr) {
 
 short Exec::e_set(short ip) {
     stack_obj_t obj_ref = stack_pop(stack);
-    stack_obj_t arr_ref = stack_pop(stack);
+    stack_obj_t val_ref = stack_pop(stack);
     auto obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(obj_ref.val.addr));
-    auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
+    auto val = dynamic_cast<GObject *>(mem->heap->get_object(val_ref.val.addr));
     stack_obj_t field_index = code_fetch(++ip);
-    obj->set_field(resolve_const(mem, field_index.val.addr), arr_descriptor);
+    obj->set_field(obj->get_context()->get_var_index(mem->constant_pool[field_index.val.addr]->val), val);
 
     return ++ip;
 }
@@ -176,10 +178,10 @@ short Exec::e_set(short ip) {
 short Exec::e_new(short ip) {
     stack_obj_t cpool_ref = code_fetch(++ip);
     std::string class_name = mem->constant_pool[cpool_ref.val.addr]->val;
-    //ClassDef* context = get_class_context(class_name);
-//    GObject* descriptor = GObjectFactory::create_object_descriptor(context);
-//    addr address = mem->heap->alloc(descriptor);
-//    descriptor->set_address(address);
+    ClassDef* context = get_class_context(class_name);
+    GObject* descriptor = GObjectFactory::create_object_descriptor(context);
+    addr address = mem->heap->alloc(descriptor);
+    descriptor->set_address(address);
     return ++ip;
 }
 
@@ -323,22 +325,23 @@ short Exec::e_call(short ip, short *caller_index) {
     return call_fn(target_index, ip, caller_index);
 }
 short Exec::e_ocall(short ip, short *caller_index) {
-//    ObjectDescriptor * obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(stack_pop(stack).val.addr));
-//    short target_cpool_index = code_fetch(++ip).val.addr;
-//    short target_index = obj->get_context()->get_function_index(mem->constant_pool[target_cpool_index]->val);
-//    Function fn = fn_pool[target_index];
-//    auto current_context = fn_pool[*caller_index].context;
-//    switch (fn.scope) {
-//        case Function::PRIVATE:
-//            if (current_context != obj->get_context()) {
-//                // throw some exception
-//            }
-//            return call_fn(target_index, ip, caller_index);
-//        case Function::PROTECTED:
-//        case Function::PUBIC:
-//            return ip + 1;
-//
-//    }
+    ObjectDescriptor * obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(stack_pop(stack).val.addr));
+    short target_cpool_index = code_fetch(++ip).val.addr;
+    short target_index = obj->get_context()->get_function_index(mem->constant_pool[target_cpool_index]->val);
+    Function fn = fn_pool[target_index];
+    auto current_context = fn_pool[*caller_index].context;
+    switch (fn.scope) {
+        case Function::PRIVATE: {
+            if (current_context != obj->get_context()) {
+                // throw some exception
+            }
+            return call_fn(target_index, ip, caller_index);
+        }
+        case Function::PROTECTED:
+        case Function::PUBIC:
+            return ip + 1;
+
+    }
     return ip;
 }
 /**
@@ -353,20 +356,19 @@ short Exec::e_cload(short ip, short *caller_index) {
     addr constant_ref = code_fetch(++ip).val.addr;
     Constant * constant_obj = mem->constant_pool[constant_ref];
     if (constant_obj->type == Constant::STRING) {
-        // create an array and load it
-//        std::string str = (const char *) constant_obj;
-//        stack_obj_t arr_index = create_parray(str.size(), CHAR, mem);
-//        auto * descriptor = dynamic_cast<ArrayDescriptor *> (mem->heap->get_object(arr_index.val.addr));
-//        for (int i = 0; i < str.size(); i++) {
-//            auto * obj = new stack_obj_t;
-//            *obj = {.type = CHAR, .val.c = str.at(i)};
-//            GObject * arr_obj = GObjectFactory::create_primitive_object(obj);
-//            mem->heap->alloc(descriptor->get_address_from_index(i), arr_obj);
-//        }
-//        stack_push(stack, arr_index);
+         // create an array and load it
+        std::string str = (const char *) constant_obj;
+        stack_obj_t arr_index = create_parray(str.size(), CHAR, mem);
+        auto * descriptor = dynamic_cast<ArrayDescriptor *> (mem->heap->get_object(arr_index.val.addr));
+        for (int i = 0; i < str.size(); i++) {
+            stack_obj_t obj = {.type = ADDR, .val = {.c = str.at(i)}};
+            GObject * arr_obj = GObjectFactory::create_primitive_object(&obj);
+            mem->heap->alloc(descriptor->get_address_from_index(i), arr_obj);
+        }
+        stack_push(stack, arr_index);
 
-        //find function index from symbol table
-        // Call String library method to instantiate from an array of characters
+//        find function index from symbol table
+//         Call String library method to instantiate from an array of characters
         //return call_fn(stack, code, target_index, ip, fn_pool, caller_index);
     }
     return ++ip;
@@ -459,3 +461,6 @@ void Exec::opcode_runner_init(Opcode *ops) {
     ops[RET].exec_caller = &Exec::e_ret;
 }
 
+ClassDef *Exec::get_class_context(const std::string& class_name) {
+    return loaded_classes->at(class_name);
+}
