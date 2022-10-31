@@ -17,7 +17,7 @@ public:
     ClassDef* context;
     short addr;
     int return_type;
-    enum {GENERAL, NATIVE} func_type;
+    enum {GENERAL, NATIVE, CTOR} func_type;
     std::string lib_path;
     std::string call_symbol;
     Code code = Code(nullptr);
