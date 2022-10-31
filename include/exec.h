@@ -104,6 +104,7 @@ public:
 
     short e_cload(short ip, short *caller_index);
 
+    short e_get(short ip);
 };
 
 #endif //GLOX_H

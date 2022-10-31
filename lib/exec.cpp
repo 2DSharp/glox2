@@ -175,13 +175,24 @@ short Exec::e_set(short ip) {
     return ++ip;
 }
 
+short Exec::e_get(short ip) {
+    stack_obj_t obj_ref = stack_pop(stack);
+    auto obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(obj_ref.val.addr));
+    stack_obj_t field_index = code_fetch(++ip);
+    auto val = obj->get_field(obj->get_context()->get_var_index(mem->constant_pool[field_index.val.addr]->val));
+    stack_push(stack, {ADDR, val->get_address()});
+
+    return ++ip;
+}
+
 short Exec::e_new(short ip) {
     stack_obj_t cpool_ref = code_fetch(++ip);
     std::string class_name = mem->constant_pool[cpool_ref.val.addr]->val;
     ClassDef* context = get_class_context(class_name);
     GObject* descriptor = GObjectFactory::create_object_descriptor(context);
-    addr address = mem->heap->alloc(descriptor);
-    descriptor->set_address(address);
+    mem->heap->alloc(descriptor);
+    stack_obj_t obj_ref = {.type = ADDR, .val = { .addr = descriptor->get_address()}};
+    stack_push(stack, obj_ref);
     return ++ip;
 }
 
@@ -325,11 +336,13 @@ short Exec::e_call(short ip, short *caller_index) {
     return call_fn(target_index, ip, caller_index);
 }
 short Exec::e_ocall(short ip, short *caller_index) {
-    ObjectDescriptor * obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(stack_pop(stack).val.addr));
+    stack_obj_t obj_ref = stack_pop(stack);
+    ObjectDescriptor * obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(obj_ref.val.addr));
     short target_cpool_index = code_fetch(++ip).val.addr;
     short target_index = obj->get_context()->get_function_index(mem->constant_pool[target_cpool_index]->val);
     Function fn = fn_pool[target_index];
     auto current_context = fn_pool[*caller_index].context;
+    stack_push(stack, obj_ref);
     switch (fn.scope) {
         case Function::PRIVATE: {
             if (current_context != obj->get_context()) {
@@ -339,7 +352,7 @@ short Exec::e_ocall(short ip, short *caller_index) {
         }
         case Function::PROTECTED:
         case Function::PUBIC:
-            return ip + 1;
+            ip = call_fn(target_index, ip, caller_index);
 
     }
     return ip;
@@ -381,6 +394,10 @@ short Exec::e_ret(short ip, short *caller_index) {
     if (has_returned) {
         /* Is not void */
         ret_val = stack_pop(stack);
+    }
+    if (func.func_type == Function::CTOR) {
+        has_returned = 1;
+        ret_val = stack->get_content(0);
     }
 
     stack->decrement_sp(func.total_local_vars());
@@ -438,6 +455,10 @@ void Exec::opcode_runner_init(Opcode *ops) {
     ops[PALOAD] = {.type = WITH_ARGS, .exec_args = &Exec::e_paload};
     ops[PASTORE] = {.type = WITH_ARGS, .exec_args = &Exec::e_pastore};
     ops[ALEN] = {.type = WITH_ARGS, .exec_args = &Exec::e_alen};
+    ops[SET] = {.type = WITH_ARGS, .exec_args = &Exec::e_set};
+    ops[GET] = {.type = WITH_ARGS, .exec_args = &Exec::e_get};
+    ops[NEW] = {.type = WITH_ARGS, .exec_args = &Exec::e_new};
+    ops[OCALL] = {.type = CALLER, .exec_caller = &Exec::e_ocall};
 
     ops[JMP].type = WITH_ARGS;
     ops[JMP].exec_args = &Exec::e_jmp;
