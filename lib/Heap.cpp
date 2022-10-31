@@ -28,6 +28,7 @@ GObject * Heap::get_object(addr address) {
 
 bool Heap::alloc(GObject *obj) {
     _objects[_tail] = obj;
+    obj->set_address(_tail);
     ++_tail;
     return true;
 }

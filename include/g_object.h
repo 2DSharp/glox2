@@ -36,6 +36,9 @@ public:
 
 
     void set_address(addr address);
+    addr get_address() {
+        return _address;
+    };
 
     stack_obj_t _data;
     Type _type;

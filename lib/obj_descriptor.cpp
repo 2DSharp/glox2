@@ -8,7 +8,7 @@ void ObjectDescriptor::set_field(int index, GObject *obj) {
     _fields[index] = obj;
 }
 
-ObjectDescriptor::ObjectDescriptor(ClassDef* class_def) : context(class_def) {
+ObjectDescriptor::ObjectDescriptor(ClassDef* class_def) : context(class_def), GObject(GObject::OBJ) {
     _fields = new GObject*[context->get_num_fields()];
 }
 
