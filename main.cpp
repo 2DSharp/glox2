@@ -75,14 +75,15 @@ int main() {
     Bytecode print_string[] = {
             {OP, LOAD}, {ADDR, {.addr = 0}},
             {OP, GET}, {ADDR, {.addr = 0x03}}, // value
-            {OP, STORE}, {ADDR, {.addr = 0}},
+            {OP, STORE}, {ADDR, {.addr = 3}},
+            {OP, LOAD}, {ADDR, {.addr = 3}},
             {OP, ALEN}, // Store length in variable
             {OP, STORE}, {ADDR, {.addr = 2}}, // len = arr.length
             {OP, ICONST}, {INT, {.n = 0}},
             {OP, STORE}, {ADDR, {.addr = 1}}, // i = 0
 
-            {OP, LOAD}, {INT, {.addr = 1}}, // #13 i = 0, 1, 2...
-            {OP, LOAD}, {ADDR, {.addr = 0}}, // arr
+            {OP, LOAD}, {INT, {.addr = 1}}, // #15 i = 0, 1, 2...
+            {OP, LOAD}, {ADDR, {.addr = 3}}, // arr
             {OP, PALOAD}, // load arr[i]
             {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // print arr[i]
 
@@ -93,10 +94,8 @@ int main() {
             {OP, LOAD}, {ADDR, {.addr = 1}}, // i
             {OP, LOAD}, {ADDR, {.addr = 2}}, // arr.length
             {OP, ILT}, // i < arr.length
-            {OP, JMPT}, {ADDR, {.addr = 13}}, // loop back to 13
-            {OP, ICONST} , {INT, {.n = 99}}, // TODO remove this
+            {OP, JMPT}, {ADDR, {.addr = 15}}, // loop back to 13
             {OP, RET}
-//            {OP, CLOAD}, {ADDR, {.addr = 0x0}}, // references the symbol pool at addr 0
     };
 
     Function f_print_string = {.locals = 3, .n_args = 1, .return_type = 0, .code = Code(print_string)}; // print(string)
