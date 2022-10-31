@@ -30,6 +30,10 @@ public:
     int get_var_index(const std::string &var_name);
 
     size_t get_num_fields();
+
+    std::string get_name() {
+        return name_space + "/" + name;
+    }
 };
 
 #endif //GLOX_CLASSDEF_H
