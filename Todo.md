@@ -5,19 +5,19 @@
 - [x] Basic CPU calculation in bytecodes
 - [x] Native function call implementation
 - [x] Initiate IO (printing to console)
-- [ ] Implement heap
-- [ ] Implement arrays
+- [x] Implement heap
+- [x] Implement arrays
 - [ ] Return data from native calls
-- [ ] Constant pool implementation
+- [x] Constant pool implementation
 - [ ] Store multiple data types - floats, boolean (ldc, fload)
 - [ ] Basic arithmetic ops on different data types
-- [ ] String implementation
+- [x] String implementation
 - [ ] IO - Read from console
 - [ ] IO - Read and write from files
 - [ ] IO - Networking - Read and Write Sockets
 - [ ] Allow calling glox program calls from native code (https://stackoverflow.com/a/17083153)
   - Use single function to allow access to internal symbol table (constant pool/function pool)
-- [ ] Objects (Classes and methods)
+- [x] Objects (Classes and methods)
 - [ ] Pass objects to native calls
 - [ ] Allow for making libraries
 
