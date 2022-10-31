@@ -35,6 +35,7 @@ void VM::vm_run(Function *func_pool, short func_index, int debug) {
 
         if (debug) {
             //printf("\tTop: %d\n", this->stack->top);
+            std::cout << "F" << func_index << " " << func_pool[func_index].total_local_vars() << " ";
             printf("IP: %03d\tOpcode: %04d\tFP: %02d ", this->instr_ptr, code, this->stack->frame_ptr);
             // print the local memory
 //            printf(" Mem: [ ");
@@ -53,6 +54,10 @@ void VM::vm_run(Function *func_pool, short func_index, int debug) {
                     auto arr = dynamic_cast<ArrayDescriptor *>(heap_obj);
 
                     std::cout << "{ P: " << arr->_size << " } ";
+                }
+                if (heap_obj != nullptr && heap_obj->_type == GObject::OBJ) {
+                    auto obj = dynamic_cast<ObjectDescriptor *>(heap_obj);
+                    std::cout << " { O: " << obj->get_context()->get_name() << "@" << obj->get_address() << " } ";
                 }
             }
             printf(" ] ");
