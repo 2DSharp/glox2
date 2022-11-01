@@ -54,7 +54,7 @@ int main() {
 
     Code arr_setter_code(set_char_arr_to_str_obj);
     Function str_setVal = { .locals = 0, .n_args = 2, .scope = Function::PUBIC, .context = string_class, .return_type = 0, .code = arr_setter_code};
-    Function str_getVal = { .locals = 0, .n_args = 1, .scope = Function::PUBIC, .context = string_class,  .return_type = 1, .code = Code(get_char_arr_to_str_obj)};
+    Function str_getVal = { .locals = 0, .n_args = 1, .scope = Function::PRIVATE, .context = string_class,  .return_type = 1, .code = Code(get_char_arr_to_str_obj)};
 
     loaded_classes["glox/core/type/String"] = string_class;
 
@@ -74,7 +74,7 @@ int main() {
 
     Bytecode print_string[] = {
             {OP, LOAD}, {ADDR, {.addr = 0}},
-            {OP, GET}, {ADDR, {.addr = 0x03}}, // value
+            {OP, OCALL}, {ADDR, {.addr = 0x05}}, // value
             {OP, STORE}, {ADDR, {.addr = 3}},
             {OP, LOAD}, {ADDR, {.addr = 3}},
             {OP, ALEN}, // Store length in variable
