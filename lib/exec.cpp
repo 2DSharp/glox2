@@ -347,6 +347,9 @@ short Exec::e_ocall(short ip, short *caller_index) {
         case Function::PRIVATE: {
             if (current_context != obj->get_context()) {
                 // throw some exception
+                std::cout << "Private function called from a wrong context";
+            } else {
+                std::cout << "Private func called from the right context";
             }
             return call_fn(target_index, ip, caller_index);
         }
