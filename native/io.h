@@ -17,7 +17,13 @@ void GNative_io_print(std::string str);
 }
 void _invoke_gnative_function(GNative_OBJ* parameters, std::string func) {
     if (func == "GNative_io_print") {
-        GNative_io_print(std::to_string(parameters[0].val.n));
+        if (parameters->type == INT) {
+            GNative_io_print(std::to_string(parameters[0].val.n));
+        }
+        if (parameters->type == CHAR) {
+            std::string str{parameters[0].val.s};
+            GNative_io_print(str);
+        }
     }
 }
 #endif //GLOX_BASICIO_H

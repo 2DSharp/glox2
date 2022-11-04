@@ -73,7 +73,7 @@ int main() {
     };
 
     Bytecode print_string[] = {
-            {OP, LOAD}, {ADDR, {.addr = 0}},
+            {OP, LOAD}, {ADDR, {.addr = 0}}, // string
             {OP, OCALL}, {ADDR, {.addr = 0x05}}, // value
             {OP, STORE}, {ADDR, {.addr = 3}},
             {OP, LOAD}, {ADDR, {.addr = 3}},
@@ -300,6 +300,8 @@ int main() {
 //            {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // print arr[i]
             {OP, LOAD}, {ADDR, {.addr = 0}},
             {OP, CALL}, {ADDR, {.addr = F_GET_STR_FROM_CHAR_ARR}},
+            {OP, CALL}, {ADDR, {.addr = F_PRINT_STR}},
+            {OP, CLOAD}, {ADDR, {.addr = 0x00}},
             {OP, CALL}, {ADDR, {.addr = F_PRINT_STR}},
             {OP, HALT},
     };

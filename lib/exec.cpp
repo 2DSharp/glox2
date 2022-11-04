@@ -185,14 +185,17 @@ short Exec::e_get(short ip) {
     return ++ip;
 }
 
-short Exec::e_new(short ip) {
-    stack_obj_t cpool_ref = code_fetch(++ip);
-    std::string class_name = mem->constant_pool[cpool_ref.val.addr]->val;
+void Exec::instantiate_object(const std::string& class_name) {
     ClassDef* context = get_class_context(class_name);
     GObject* descriptor = GObjectFactory::create_object_descriptor(context);
     mem->heap->alloc(descriptor);
     stack_obj_t obj_ref = {.type = ADDR, .val = { .addr = descriptor->get_address()}};
     stack_push(stack, obj_ref);
+}
+short Exec::e_new(short ip) {
+    stack_obj_t cpool_ref = code_fetch(++ip);
+    std::string class_name = mem->constant_pool[cpool_ref.val.addr]->val;
+    instantiate_object(class_name);
     return ++ip;
 }
 
@@ -335,11 +338,10 @@ short Exec::e_call(short ip, short *caller_index) {
     short target_index = code_fetch(++ip).val.addr;
     return call_fn(target_index, ip, caller_index);
 }
-short Exec::e_ocall(short ip, short *caller_index) {
+short Exec::ocall_lib(const char * library_func, short ip, short *caller_index) {
     stack_obj_t obj_ref = stack_pop(stack);
     ObjectDescriptor * obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(obj_ref.val.addr));
-    short target_cpool_index = code_fetch(++ip).val.addr;
-    short target_index = obj->get_context()->get_function_index(mem->constant_pool[target_cpool_index]->val);
+    short target_index = obj->get_context()->get_function_index(library_func);
     Function fn = fn_pool[target_index];
     auto current_context = fn_pool[*caller_index].context;
     stack_push(stack, obj_ref);
@@ -360,6 +362,12 @@ short Exec::e_ocall(short ip, short *caller_index) {
     }
     return ip;
 }
+short Exec::e_ocall(short ip, short *caller_index) {
+
+    short target_cpool_index = code_fetch(++ip).val.addr;
+    auto func = mem->constant_pool[target_cpool_index]->val;
+    return ocall_lib(func, ip, caller_index);
+}
 /**
  * Loads data from the constant pool
  * @param stack
@@ -373,16 +381,17 @@ short Exec::e_cload(short ip, short *caller_index) {
     Constant * constant_obj = mem->constant_pool[constant_ref];
     if (constant_obj->type == Constant::STRING) {
          // create an array and load it
-        std::string str = (const char *) constant_obj;
+        std::string str = constant_obj->val;
         stack_obj_t arr_index = create_parray(str.size(), CHAR, mem);
         auto * descriptor = dynamic_cast<ArrayDescriptor *> (mem->heap->get_object(arr_index.val.addr));
         for (int i = 0; i < str.size(); i++) {
-            stack_obj_t obj = {.type = ADDR, .val = {.c = str.at(i)}};
+            stack_obj_t obj = {.type = CHAR, .val = {.c = str.at(i)}};
             GObject * arr_obj = GObjectFactory::create_primitive_object(&obj);
             mem->heap->alloc(descriptor->get_address_from_index(i), arr_obj);
         }
         stack_push(stack, arr_index);
-
+        instantiate_object("glox/core/type/String");
+        return ocall_lib("init", ip, caller_index);
 //        find function index from symbol table
 //         Call String library method to instantiate from an array of characters
         //return call_fn(stack, code, target_index, ip, fn_pool, caller_index);
@@ -461,6 +470,7 @@ void Exec::opcode_runner_init(Opcode *ops) {
     ops[SET] = {.type = WITH_ARGS, .exec_args = &Exec::e_set};
     ops[GET] = {.type = WITH_ARGS, .exec_args = &Exec::e_get};
     ops[NEW] = {.type = WITH_ARGS, .exec_args = &Exec::e_new};
+    ops[CLOAD] = {.type = CALLER, .exec_caller = &Exec::e_cload};
     ops[OCALL] = {.type = CALLER, .exec_caller = &Exec::e_ocall};
 
     ops[JMP].type = WITH_ARGS;

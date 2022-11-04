@@ -105,6 +105,10 @@ public:
     short e_cload(short ip, short *caller_index);
 
     short e_get(short ip);
+
+    short ocall_lib(const char *library_func, short ip, short *caller_index);
+
+    void instantiate_object(const std::string& class_name);
 };
 
 #endif //GLOX_H
