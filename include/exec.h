@@ -12,7 +12,10 @@
 #include "bytecode.h"
 #include "dl_loader.h"
 #include "g_object_factory.h"
+#include "../native/gnative.h"
 #include <iostream>
+#include <functional>
+
 
 class Exec {
 private:
@@ -109,6 +112,8 @@ public:
     short ocall_lib(const char *library_func, short ip, short *caller_index);
 
     void instantiate_object(const std::string& class_name);
+
+    GClass native_get_class(const char *cls);
 };
 
 #endif //GLOX_H

@@ -11,6 +11,7 @@
 #define STR_INIT 6
 #define F_PRINT_STR 7
 #define F_GET_STR_FROM_CHAR_ARR 8
+#define POINT_GETX 9
 
 
 int main() {
@@ -23,6 +24,11 @@ int main() {
             new Constant(Constant::VAR, "value"),
             new Constant(Constant::FUNC, "setValue"),
             new Constant(Constant::FUNC, "getValue"),
+            new Constant(Constant::CLASS, "glox/math/type/Point"),
+            new Constant(Constant::FUNC, "init"),
+            new Constant(Constant::VAR, "x"),
+            new Constant(Constant::FUNC, "getX"),
+//            new Constant(Constant::FUNC, "getY"),
     };
 
     auto *mem = new Memory(const_pool,
@@ -31,13 +37,19 @@ int main() {
 
     // Run classloader here - forEach class file, generate the symbol tables and push to the class lut
     std::map<std::string, ClassDef*> loaded_classes;
-    std::map<std::string, int> fn_table;
-    fn_table["setValue"] = STR_SETVAL;
-    fn_table["getValue"] = STR_GETVAL;
-    fn_table["init"] = STR_INIT;
-    std::map<std::string, int> var_table;
-    var_table["value"] = 0;
-    auto *string_class = new ClassDef("String", "glox/core/type", fn_table, var_table);
+    std::map<std::string, int> str_fn_table;
+    str_fn_table["setValue"] = STR_SETVAL;
+    str_fn_table["getValue"] = STR_GETVAL;
+    str_fn_table["init"] = STR_INIT;
+    std::map<std::string, int> str_var_table;
+    str_var_table["value"] = 0;
+    auto *string_class = new ClassDef("String", "glox/core/type", str_fn_table, str_var_table);
+    std::map<std::string, int> point_fn_table;
+    str_fn_table["getX"] = POINT_GETX;
+    str_fn_table["init"] = STR_INIT;
+    std::map<std::string, int> point_var_table;
+    point_var_table["x"] = 0;
+    auto *point_class = new ClassDef("Point", "glox/math/type", point_fn_table, point_var_table);
 
     Bytecode set_char_arr_to_str_obj[] = {
             {OP, LOAD}, {ADDR, {.addr = 1}}, // array
@@ -54,7 +66,7 @@ int main() {
 
     Code arr_setter_code(set_char_arr_to_str_obj);
     Function str_setVal = { .locals = 0, .n_args = 2, .scope = Function::PUBIC, .context = string_class, .return_type = 0, .code = arr_setter_code};
-    Function str_getVal = { .locals = 0, .n_args = 1, .scope = Function::PRIVATE, .context = string_class,  .return_type = 1, .code = Code(get_char_arr_to_str_obj)};
+    Function str_getVal = { .locals = 0, .n_args = 1, .scope = Function::PUBIC, .context = string_class,  .return_type = 1, .code = Code(get_char_arr_to_str_obj)};
 
     loaded_classes["glox/core/type/String"] = string_class;
 
@@ -71,6 +83,30 @@ int main() {
             {OP, OCALL}, {ADDR, {.addr = 0x4}}, // setValue
             {OP, RET}
     };
+
+    Bytecode create_new_point[] = {
+            {OP, LOAD}, {ADDR, {.addr = 0}}, // x
+            {OP, NEW}, {ADDR, {.addr = 0x6}}, // object ref
+            {OP, OCALL}, {ADDR, {.addr = 0x7}}, // invoke init()
+            {OP, RET}
+    };
+
+    Bytecode init_point[] = {
+            {OP, LOAD}, {ADDR, {.addr = 1}}, // x
+            {OP, LOAD}, {ADDR, {.addr = 0}}, // object ref
+            {OP, SET}, {ADDR, {.addr = 0x8}}, // setX
+    };
+
+    Bytecode point_get_x[] = {
+            {OP, GET}, {ADDR, {.addr = 0x8}}, // field name from constant pool
+            {OP, RET}
+    };
+
+    Function f_point_init = {.locals = 0, .n_args = 2, .scope = Function::PUBIC,  .context = point_class, .return_type = 0, .func_type = Function::CTOR, .code = Code(init_point) }; // new String(arr) -> definition
+    Function f_point_new = {.locals = 0, .n_args = 1, .return_type = 1, .code = Code(create_new_point)}; // str = new string()
+    Function f_point_getX = { .locals = 0, .n_args = 0, .scope = Function::PUBIC, .context = point_class,  .return_type = 1, .code = Code(point_get_x)};
+    loaded_classes["glox/math/type/Point"] = point_class;
+
 
     Bytecode print_string[] = {
             {OP, LOAD}, {ADDR, {.addr = 0}}, // string

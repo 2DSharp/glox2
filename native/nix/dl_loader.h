@@ -6,6 +6,7 @@
 #define GLOX_UNIX_DL_LOADER_H
 
 #include <iostream>
+#include <utility>
 #include <dlfcn.h>
 #include "../../include/dl_loader.h"
 
@@ -17,8 +18,8 @@ private:
     std::string _deleteClassSymbol;
 
 public:
-    UnixDLLoader(std::string const &pathToLib) :
-            _handle(nullptr), _pathToLib(pathToLib)
+    UnixDLLoader(std::string pathToLib) :
+            _handle(nullptr), _pathToLib(std::move(pathToLib))
     {
     }
     ~UnixDLLoader() = default;

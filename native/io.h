@@ -9,21 +9,30 @@
 #include <string>
 #include <iostream>
 
+void (*callback)() = NULL;
+GRuntime runtime;
 
 extern "C"
 {
-
-void GNative_io_print(std::string str);
+void GNative_io_print(GRuntime * runtime, std::string str);
 }
-void _invoke_gnative_function(GNative_OBJ* parameters, std::string func) {
+
+void _initialize_glox_runtime(GRuntime g_runtime) {
+    runtime = g_runtime;
+}
+
+void* _invoke_gnative_function(GNative_OBJ* parameters, std::string func) {
     if (func == "GNative_io_print") {
         if (parameters->type == INT) {
-            GNative_io_print(std::to_string(parameters[0].val.n));
+            GNative_io_print(&runtime, std::to_string(parameters[0].val.n));
         }
         if (parameters->type == CHAR) {
             std::string str{parameters[0].val.s};
-            GNative_io_print(str);
+            GNative_io_print(&runtime, str);
         }
     }
+}
+void _register_func(void (*callback_func)()) {
+
 }
 #endif //GLOX_BASICIO_H

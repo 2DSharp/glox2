@@ -5,7 +5,21 @@
 #include "../include/array_descriptor.h"
 #include "../include/dl_loader_factory.h"
 #include "../include/obj_descriptor.h"
+#include "../native/gnative.h"
+template <typename T>
+struct Callback;
 
+template <typename Ret, typename... Params>
+struct Callback<Ret(Params...)> {
+    template <typename... Args>
+    static Ret callback(Args... args) {
+        return func(args...);
+    }
+    static std::function<Ret(Params...)> func;
+};
+
+template <typename Ret, typename... Params>
+std::function<Ret(Params...)> Callback<Ret(Params...)>::func;
 
 Exec::Exec(Stack *stack, Code *code, Memory *mem, Function *fn_pool, std::map<std::string, ClassDef*> *loaded_classes) :
 stack(stack), code(code), mem(mem), fn_pool(fn_pool), loaded_classes(loaded_classes) {
@@ -279,6 +293,15 @@ void Exec::e_pop() {
     stack_pop(stack);
 }
 
+GClass Exec::native_get_class(const char * cls) {
+    auto class_def = loaded_classes->at(cls);
+    std::string name = class_def->get_name();
+    return {
+        .class_name = "lal"
+    };
+}
+
+
 short Exec::call_fn(short target_index, short ip, short *caller_index) {
     Function caller_fn = fn_pool[*caller_index];
     Function target_fn = fn_pool[target_index];
@@ -300,8 +323,21 @@ short Exec::call_fn(short target_index, short ip, short *caller_index) {
 
         DLLoader * loader = get_dl_loader(target_fn.lib_path);
         loader->DLOpenLib();
-        void (*native_func)(stack_obj_t*,std::string);
-        native_func = reinterpret_cast<void (*)(stack_obj_t*, std::string)> (loader->DLGetInstance("_invoke_gnative_function"));
+        void* (*native_func)(stack_obj_t*,std::string);
+        // void (*init_runtime)(GRuntime*(*)());
+       // init_runtime = reinterpret_cast<void (*)(void (*)())> (loader->DLGetInstance("_initialize_glox_runtime"));
+        void (*init_runtime)(GRuntime);
+        init_runtime = reinterpret_cast<void (*)(GRuntime)> (loader->DLGetInstance("_initialize_glox_runtime"));
+        Callback<GClass (const char*)>::func = std::bind(&Exec::native_get_class, this, std::placeholders::_1);
+        auto func = static_cast<GClass (*)(const char *)>(Callback<GClass (const char*)>::callback);
+
+        GRuntime runtime = {
+                .get_class = func,
+//                .invoke = native_invoke,
+//                .init_new = native_init
+        };
+        init_runtime(runtime);
+        native_func = reinterpret_cast<void* (*)(stack_obj_t*, std::string)> (loader->DLGetInstance("_invoke_gnative_function"));
         native_func(local_mem, target_fn.call_symbol);
         loader->DLCloseLib();
 
@@ -340,7 +376,7 @@ short Exec::e_call(short ip, short *caller_index) {
 }
 short Exec::ocall_lib(const char * library_func, short ip, short *caller_index) {
     stack_obj_t obj_ref = stack_pop(stack);
-    ObjectDescriptor * obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(obj_ref.val.addr));
+    auto * obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(obj_ref.val.addr));
     short target_index = obj->get_context()->get_function_index(library_func);
     Function fn = fn_pool[target_index];
     auto current_context = fn_pool[*caller_index].context;
