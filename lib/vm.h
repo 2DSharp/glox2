@@ -17,8 +17,8 @@
 
 class VM {
 public:
-    VM(size_t stack_size, Memory * mem, std::map<std::string, ClassDef*> *loaded_classes);
-    void vm_run(Function * func_pool, short func_index, int debug);
+    VM(size_t stack_size, Memory *mem, std::map<std::string, ClassDef*> *loaded_classes, Function * func_pool, int debug);
+    void vm_run(short func_index);
     void vm_close();
 
 private:
@@ -29,13 +29,18 @@ private:
     Stack * stack;
     Memory * memory;
     State state;
+    Function *func_pool;
+    int debug = 0;
     static short get_code(Bytecode code);
 
 
-    void vm_exec(Exec exec, Code *code_mem, const Exec::Opcode *opcode, const Function *func_pool, short *func_index);
+    void vm_exec(Exec exec, const Exec::Opcode *opcode, short *func_index);
 
     std::map<std::string, ClassDef *> *loaded_classes;
+    GNativeObj vm_native_callback(short func_index, short ip);
+
 };
+
 
 
 #endif //GLOX_VM_H

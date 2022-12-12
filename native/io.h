@@ -21,13 +21,13 @@ void _initialize_glox_runtime(GRuntime g_runtime) {
     runtime = g_runtime;
 }
 
-void* _invoke_gnative_function(GNative_OBJ* parameters, std::string func) {
+void* _invoke_gnative_function(GNativeObj * parameters, std::string func) {
     if (func == "GNative_io_print") {
         if (parameters->type == INT) {
             GNative_io_print(&runtime, std::to_string(parameters[0].val.n));
         }
         if (parameters->type == CHAR) {
-            std::string str{parameters[0].val.s};
+            std::string str{parameters[0].val.c};
             GNative_io_print(&runtime, str);
         }
     }

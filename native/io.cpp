@@ -7,11 +7,16 @@
 void print(std::string str) {
     std::cout << str;
 }
-void GNative_io_print(GRuntime * runtime, std::string str) {
+
+void GNative_io_print(GRuntime *runtime, std::string str) {
     GClass str_class = runtime->get_class("glox/math/type/Point");
-//    GObject obj = runtime->init_new(str_class, 10);
-   // int x = runtime->invoke(obj, "getX");
-   // int y = runtime->invoke(obj, "getY");
-    std::cout << "x " << str_class.class_name;
+    GParamList params = runtime->init_params(1, GNativeObj{.type = INT, .val = {.n = 77}});
+    GNativeObj obj;
+    runtime->init_new(str_class, params);
+    params = runtime->init_params(0);
+    GNativeObj x;
+    runtime->invoke(obj, "getX", params);
+
+    std::cout << "x " << x.val.n;
     print(str);
 }

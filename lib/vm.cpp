@@ -4,15 +4,22 @@
 
 #include "vm.h"
 
-VM::VM(size_t stack_size, Memory *mem, std::map<std::string, ClassDef*> *loaded_classes) {
+VM::VM(size_t stack_size, Memory *mem, std::map<std::string, ClassDef*> *loaded_classes, Function * func_pool, int debug) {
     this->stack = new Stack(stack_size);
     this->instr_ptr = 0;
     this->memory = mem;
     this->state = ST_HALTED;
     this->loaded_classes = loaded_classes;
+    this->func_pool = func_pool;
+    this->debug = debug;
 }
 
-void VM::vm_run(Function *func_pool, short func_index, int debug) {
+GNativeObj VM::vm_native_callback(short func_index, short ip) {
+    this->instr_ptr = ip;
+    vm_run(func_index); // till the function exits
+}
+
+void VM::vm_run(short func_index) {
     short code;
     Code *code_mem = new Code(nullptr);
     Function main = func_pool[func_index];
@@ -62,9 +69,10 @@ void VM::vm_run(Function *func_pool, short func_index, int debug) {
             }
             printf(" ] ");
             //printf("fu: %d",func_pool[func_index].n_args);
+            fflush(stdout);
         }
         /** Execute */
-        vm_exec(exec, code_mem, &opcode, func_pool, &func_index);
+        vm_exec(exec, &opcode, &func_index);
         code = get_code(code_mem->code_fetch(this->instr_ptr));
 
         if (debug) {
@@ -77,7 +85,7 @@ void VM::vm_close() {
     delete stack;
 }
 
-void VM::vm_exec(Exec exec, Code *code_mem, const Exec::Opcode *opcode, const Function *func_pool, short *func_index) {
+void VM::vm_exec(Exec exec, const Exec::Opcode *opcode, short *func_index) {
     this->state = ST_RUNNING;
     switch (opcode->type) {
         case Exec::NOARGS: {
@@ -94,7 +102,7 @@ void VM::vm_exec(Exec exec, Code *code_mem, const Exec::Opcode *opcode, const Fu
 
         case Exec::CALLER: {
             auto ptr = opcode->exec_caller;
-            instr_ptr = (exec.*ptr)(instr_ptr, func_index);
+            instr_ptr = (exec.*ptr)(instr_ptr, func_index, std::bind(&VM::vm_native_callback, this, std::placeholders::_1, std::placeholders::_2));
             break;
         }
         case Exec::NONE:

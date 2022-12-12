@@ -12,6 +12,7 @@
 #define F_PRINT_STR 7
 #define F_GET_STR_FROM_CHAR_ARR 8
 #define POINT_GETX 9
+#define POINT_INIT 10
 
 
 int main() {
@@ -45,8 +46,8 @@ int main() {
     str_var_table["value"] = 0;
     auto *string_class = new ClassDef("String", "glox/core/type", str_fn_table, str_var_table);
     std::map<std::string, int> point_fn_table;
-    str_fn_table["getX"] = POINT_GETX;
-    str_fn_table["init"] = STR_INIT;
+    point_fn_table["getX"] = POINT_GETX;
+    point_fn_table["init"] = POINT_INIT;
     std::map<std::string, int> point_var_table;
     point_var_table["x"] = 0;
     auto *point_class = new ClassDef("Point", "glox/math/type", point_fn_table, point_var_table);
@@ -95,6 +96,7 @@ int main() {
             {OP, LOAD}, {ADDR, {.addr = 1}}, // x
             {OP, LOAD}, {ADDR, {.addr = 0}}, // object ref
             {OP, SET}, {ADDR, {.addr = 0x8}}, // setX
+            {OP, RET}
     };
 
     Bytecode point_get_x[] = {
@@ -104,7 +106,7 @@ int main() {
 
     Function f_point_init = {.locals = 0, .n_args = 2, .scope = Function::PUBIC,  .context = point_class, .return_type = 0, .func_type = Function::CTOR, .code = Code(init_point) }; // new String(arr) -> definition
     Function f_point_new = {.locals = 0, .n_args = 1, .return_type = 1, .code = Code(create_new_point)}; // str = new string()
-    Function f_point_getX = { .locals = 0, .n_args = 0, .scope = Function::PUBIC, .context = point_class,  .return_type = 1, .code = Code(point_get_x)};
+    Function f_point_getX = { .locals = 0, .n_args = 1, .scope = Function::PUBIC, .context = point_class,  .return_type = 1, .code = Code(point_get_x)};
     loaded_classes["glox/math/type/Point"] = point_class;
 
 
@@ -138,7 +140,6 @@ int main() {
     Function f_string_init_def = {.locals = 0, .n_args = 2, .scope = Function::PUBIC,  .context = string_class, .return_type = 0, .func_type = Function::CTOR, .code = Code(ctor_string_from_arr) }; // new String(arr) -> definition
     Function f_new_string = {.locals = 0, .n_args = 1, .return_type = 1, .code = Code(create_new_string_from_array)}; // str = new string()
 
-    VM *vm = new VM(stack_size, mem, &loaded_classes);
 
     /* short instrs[] = { ICONST, 0,
                STORE, 1,
@@ -255,7 +256,7 @@ int main() {
     f_print.lib_path = "native/libio.so";
 
 
-    Function func_pool[10];
+    Function func_pool[12];
     func_pool[F_MAIN] = f_main;
     func_pool[F_FIB] = f_fib;
     func_pool[F_PRINT] = f_print;
@@ -264,6 +265,8 @@ int main() {
     func_pool[STR_GETVAL] = str_getVal;
     func_pool[F_GET_STR_FROM_CHAR_ARR] = f_new_string;
     func_pool[F_PRINT_STR] = f_print_string;
+    func_pool[POINT_INIT] = f_point_init;
+    func_pool[POINT_GETX] = f_point_getX;
 
 
     //printf("IP: %d\n", vm->instr_ptr);
@@ -345,7 +348,9 @@ int main() {
     Code code_arr_main(arr_test);
     f_main.code = code_arr_main;
     func_pool[F_MAIN] = f_main;
-    vm->vm_run(func_pool, F_MAIN, 0);
+    VM *vm = new VM(stack_size, mem, &loaded_classes, func_pool, 1);
+
+    vm->vm_run(F_MAIN);
 //
 //    vm->vm_close();
 //    delete code;

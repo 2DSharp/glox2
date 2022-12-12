@@ -6,24 +6,28 @@
 #include "../include/dl_loader_factory.h"
 #include "../include/obj_descriptor.h"
 #include "../native/gnative.h"
-template <typename T>
+
+template<typename T>
 struct Callback;
 
-template <typename Ret, typename... Params>
+template<typename Ret, typename... Params>
 struct Callback<Ret(Params...)> {
-    template <typename... Args>
+    template<typename... Args>
     static Ret callback(Args... args) {
         return func(args...);
     }
+
     static std::function<Ret(Params...)> func;
 };
 
-template <typename Ret, typename... Params>
+template<typename Ret, typename... Params>
 std::function<Ret(Params...)> Callback<Ret(Params...)>::func;
 
-Exec::Exec(Stack *stack, Code *code, Memory *mem, Function *fn_pool, std::map<std::string, ClassDef*> *loaded_classes) :
-stack(stack), code(code), mem(mem), fn_pool(fn_pool), loaded_classes(loaded_classes) {
+Exec::Exec(Stack *stack, Code *code, Memory *mem, Function *fn_pool, std::map<std::string, ClassDef *> *loaded_classes)
+        :
+        stack(stack), code(code), mem(mem), fn_pool(fn_pool), loaded_classes(loaded_classes) {
 }
+
 void Exec::e_nop() {
     return;
 }
@@ -129,12 +133,14 @@ short Exec::e_store(short ip) {
 short Exec::e_jmp(short ip) {
     return (code_fetch(++ip).val.n);
 }
-stack_obj_t create_parray(size_t size, int type, Memory * mem) {
-    GObject * obj = GObjectFactory::create_array_descriptor(size, type);
+
+stack_obj_t create_parray(size_t size, int type, Memory *mem) {
+    GObject *obj = GObjectFactory::create_array_descriptor(size, type);
     addr ref = mem->heap->allocate_contiguous_block(obj, size);
     stack_obj_t res = {.type = ADDR, .val = {.addr = ref}};
     return res;
 }
+
 short Exec::e_newparray(short ip) {
     stack_obj_t size = stack_pop(stack);
     stack_obj_t type = stack_pop(stack);
@@ -147,7 +153,7 @@ short Exec::e_paload(short ip) {
     stack_obj_t arr_ref = stack_pop(stack);
     auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
     stack_obj_t index = stack_pop(stack);
-    GObject * arr_obj = mem->heap->get_object(arr_descriptor->get_address_from_index(index.val.n));
+    GObject *arr_obj = mem->heap->get_object(arr_descriptor->get_address_from_index(index.val.n));
     stack_obj_t primitive = arr_obj->_data;
     stack_push(stack, primitive);
     return ++ip;
@@ -166,12 +172,12 @@ short Exec::e_pastore(short ip) {
     auto arr_descriptor = dynamic_cast<ArrayDescriptor *>(mem->heap->get_object(arr_ref.val.addr));
     stack_obj_t index = stack_pop(stack);
     stack_obj_t value = stack_pop(stack);
-    GObject * arr_obj = GObjectFactory::create_primitive_object(&value);
+    GObject *arr_obj = GObjectFactory::create_primitive_object(&value);
     mem->heap->alloc(arr_descriptor->get_address_from_index(index.val.n), arr_obj);
     return ++ip;
 }
 
-int resolve_const(Memory * mem, short addr) {
+int resolve_const(Memory *mem, short addr) {
     int res;
     std::istringstream in(mem->constant_pool[addr]->val);
     in >> res;
@@ -199,13 +205,14 @@ short Exec::e_get(short ip) {
     return ++ip;
 }
 
-void Exec::instantiate_object(const std::string& class_name) {
-    ClassDef* context = get_class_context(class_name);
-    GObject* descriptor = GObjectFactory::create_object_descriptor(context);
+void Exec::instantiate_object(const std::string &class_name) {
+    ClassDef *context = get_class_context(class_name);
+    GObject *descriptor = GObjectFactory::create_object_descriptor(context);
     mem->heap->alloc(descriptor);
-    stack_obj_t obj_ref = {.type = ADDR, .val = { .addr = descriptor->get_address()}};
+    stack_obj_t obj_ref = {.type = ADDR, .val = {.addr = descriptor->get_address()}};
     stack_push(stack, obj_ref);
 }
+
 short Exec::e_new(short ip) {
     stack_obj_t cpool_ref = code_fetch(++ip);
     std::string class_name = mem->constant_pool[cpool_ref.val.addr]->val;
@@ -293,16 +300,18 @@ void Exec::e_pop() {
     stack_pop(stack);
 }
 
-GClass Exec::native_get_class(const char * cls) {
+GClass Exec::native_get_class(const char *cls) {
     auto class_def = loaded_classes->at(cls);
     std::string name = class_def->get_name();
-    return {
-        .class_name = "lal"
-    };
+
+    GClass class_obj;
+    class_obj.class_name = new char();
+    strcpy(class_obj.class_name, name.c_str());
+    return class_obj;
 }
 
 
-short Exec::call_fn(short target_index, short ip, short *caller_index) {
+short Exec::call_fn(short target_index, short ip, short *caller_index, vm_run_callback callback) {
     Function caller_fn = fn_pool[*caller_index];
     Function target_fn = fn_pool[target_index];
 
@@ -321,23 +330,41 @@ short Exec::call_fn(short target_index, short ip, short *caller_index) {
     if (target_fn.func_type == Function::NATIVE) {
         // Make a copy of the local variables into a subarray
 
-        DLLoader * loader = get_dl_loader(target_fn.lib_path);
+        DLLoader *loader = get_dl_loader(target_fn.lib_path);
         loader->DLOpenLib();
-        void* (*native_func)(stack_obj_t*,std::string);
+        void *(*native_func)(stack_obj_t *, std::string);
         // void (*init_runtime)(GRuntime*(*)());
-       // init_runtime = reinterpret_cast<void (*)(void (*)())> (loader->DLGetInstance("_initialize_glox_runtime"));
+        // init_runtime = reinterpret_cast<void (*)(void (*)())> (loader->DLGetInstance("_initialize_glox_runtime"));
         void (*init_runtime)(GRuntime);
         init_runtime = reinterpret_cast<void (*)(GRuntime)> (loader->DLGetInstance("_initialize_glox_runtime"));
-        Callback<GClass (const char*)>::func = std::bind(&Exec::native_get_class, this, std::placeholders::_1);
-        auto func = static_cast<GClass (*)(const char *)>(Callback<GClass (const char*)>::callback);
+        Callback<GClass(const char *)>::func = std::bind(&Exec::native_get_class, this, std::placeholders::_1);
+        auto native_get_class = static_cast<GClass (*)(const char *)>(Callback<GClass(const char *)>::callback);
+
+        Callback<GNativeObj (GNativeObj, const char *, GParamList)>::func = std::bind(&Exec::native_invoke, this, ip,
+                                                                                      caller_index,
+                                                                                      callback,
+                                                                                      std::placeholders::_1,
+                                                                                      std::placeholders::_2,
+                                                                                      std::placeholders::_3);
+        auto native_invoke = static_cast<GNativeObj (*)(GNativeObj , const char *, GParamList)>
+        (Callback<GNativeObj (GNativeObj, const char *, GParamList)>::callback);
+
+        Callback<GNativeObj (GClass, GParamList)>::func = std::bind(&Exec::native_instantiate_obj, this, ip,
+                                                                     caller_index,
+                                                                     callback,
+                                                                     std::placeholders::_1,
+                                                                     std::placeholders::_2);
+        auto native_instantiate = static_cast<GNativeObj (*)(GClass, GParamList)>
+        (Callback<GNativeObj (GClass, GParamList)>::callback);
 
         GRuntime runtime = {
-                .get_class = func,
-//                .invoke = native_invoke,
-//                .init_new = native_init
+                .get_class = native_get_class,
+                .invoke = native_invoke,
+                .init_new = native_instantiate
         };
         init_runtime(runtime);
-        native_func = reinterpret_cast<void* (*)(stack_obj_t*, std::string)> (loader->DLGetInstance("_invoke_gnative_function"));
+        native_func = reinterpret_cast<void *(*)(stack_obj_t *, std::string)> (loader->DLGetInstance(
+                "_invoke_gnative_function"));
         native_func(local_mem, target_fn.call_symbol);
         loader->DLCloseLib();
 
@@ -370,13 +397,15 @@ short Exec::call_fn(short target_index, short ip, short *caller_index) {
     code->copy_contents(&target_fn.code);
     return 0; // call the 1st line of the target code
 }
-short Exec::e_call(short ip, short *caller_index) {
+
+short Exec::e_call(short ip, short *caller_index, vm_run_callback runner) {
     short target_index = code_fetch(++ip).val.addr;
-    return call_fn(target_index, ip, caller_index);
+    return call_fn(target_index, ip, caller_index, runner);
 }
-short Exec::ocall_lib(const char * library_func, short ip, short *caller_index) {
+
+short Exec::ocall_lib(const char *library_func, short ip, short *caller_index, const vm_run_callback& callback) {
     stack_obj_t obj_ref = stack_pop(stack);
-    auto * obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(obj_ref.val.addr));
+    auto *obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(obj_ref.val.addr));
     short target_index = obj->get_context()->get_function_index(library_func);
     Function fn = fn_pool[target_index];
     auto current_context = fn_pool[*caller_index].context;
@@ -389,21 +418,23 @@ short Exec::ocall_lib(const char * library_func, short ip, short *caller_index) 
             } else {
                 std::cout << "Private func called from the right context";
             }
-            return call_fn(target_index, ip, caller_index);
+            return call_fn(target_index, ip, caller_index, callback);
         }
         case Function::PROTECTED:
         case Function::PUBIC:
-            ip = call_fn(target_index, ip, caller_index);
+            ip = call_fn(target_index, ip, caller_index, callback);
 
     }
     return ip;
 }
-short Exec::e_ocall(short ip, short *caller_index) {
+
+short Exec::e_ocall(short ip, short *caller_index, vm_run_callback callback) {
 
     short target_cpool_index = code_fetch(++ip).val.addr;
     auto func = mem->constant_pool[target_cpool_index]->val;
-    return ocall_lib(func, ip, caller_index);
+    return ocall_lib(func, ip, caller_index, callback);
 }
+
 /**
  * Loads data from the constant pool
  * @param stack
@@ -412,29 +443,30 @@ short Exec::e_ocall(short ip, short *caller_index) {
  * @param mem
  * @return
  */
-short Exec::e_cload(short ip, short *caller_index) {
+short Exec::e_cload(short ip, short *caller_index, vm_run_callback callback) {
     addr constant_ref = code_fetch(++ip).val.addr;
-    Constant * constant_obj = mem->constant_pool[constant_ref];
+    Constant *constant_obj = mem->constant_pool[constant_ref];
     if (constant_obj->type == Constant::STRING) {
-         // create an array and load it
+        // create an array and load it
         std::string str = constant_obj->val;
         stack_obj_t arr_index = create_parray(str.size(), CHAR, mem);
-        auto * descriptor = dynamic_cast<ArrayDescriptor *> (mem->heap->get_object(arr_index.val.addr));
+        auto *descriptor = dynamic_cast<ArrayDescriptor *> (mem->heap->get_object(arr_index.val.addr));
         for (int i = 0; i < str.size(); i++) {
             stack_obj_t obj = {.type = CHAR, .val = {.c = str.at(i)}};
-            GObject * arr_obj = GObjectFactory::create_primitive_object(&obj);
+            GObject *arr_obj = GObjectFactory::create_primitive_object(&obj);
             mem->heap->alloc(descriptor->get_address_from_index(i), arr_obj);
         }
         stack_push(stack, arr_index);
         instantiate_object("glox/core/type/String");
-        return ocall_lib("init", ip, caller_index);
+        return ocall_lib("init", ip, caller_index, std::move(callback));
 //        find function index from symbol table
 //         Call String library method to instantiate from an array of characters
         //return call_fn(stack, code, target_index, ip, fn_pool, caller_index);
     }
     return ++ip;
 }
-short Exec::e_ret(short ip, short *caller_index) {
+
+short Exec::e_ret(short ip, short *caller_index, vm_run_callback callback) {
     stack_obj_t ret_val;
     Function func = fn_pool[*caller_index];
     int has_returned = func.return_type > 0;
@@ -470,8 +502,8 @@ void Exec::opcode_runner_init(Opcode *ops) {
     ops[IADD].type = NOARGS;
     ops[IADD].exec_noargs = &Exec::e_iadd;
 
- /*   Exec e;
-    (e.*ops[IADD].exec_noargs)();*/
+    /*   Exec e;
+       (e.*ops[IADD].exec_noargs)();*/
 
     ops[ISUB].type = NOARGS;
     ops[ISUB].exec_noargs = &Exec::e_isub;
@@ -531,6 +563,39 @@ void Exec::opcode_runner_init(Opcode *ops) {
     ops[RET].exec_caller = &Exec::e_ret;
 }
 
-ClassDef *Exec::get_class_context(const std::string& class_name) {
+ClassDef *Exec::get_class_context(const std::string &class_name) {
     return loaded_classes->at(class_name);
+}
+
+GNativeObj
+Exec::native_invoke(short ip, short *caller_index, vm_run_callback callback, GNativeObj obj, const char *func,
+                    GParamList params_meta) {
+    auto params = params_meta.params;
+    for (int i = 0; i < params_meta.size; i++) {
+        stack->push(convert_native_to_stack_obj(params[i]));
+    }
+    stack->push(convert_native_to_stack_obj(obj));
+    ocall_lib(func, ip, caller_index, callback);
+    callback(*(caller_index), ip);
+
+//    std::cout << ip << " " << func;
+
+    auto res = stack_pop(stack);
+    GNativeObj param;
+    if (res.type == GObject::OBJ) {
+        param.val.addr = res.val.addr;
+    }
+
+    return convert_stack_obj_to_native(res);
+}
+
+GNativeObj Exec::native_instantiate_obj(short ip, short *caller_index, vm_run_callback runner, GClass cls, GParamList params) {
+    for (int i = 0; i < params.size; i++) {
+        stack->push(convert_native_to_stack_obj(params.params[i]));
+    }
+    instantiate_object(cls.class_name);
+    ip = ocall_lib("init", ip, caller_index, runner);
+    runner(*(caller_index), ip);
+    auto res = convert_stack_obj_to_native(stack->pop());
+    return res;
 }
