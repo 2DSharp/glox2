@@ -12,11 +12,11 @@ void GNative_io_print(GRuntime *runtime, std::string str) {
     GClass str_class = runtime->get_class("glox/math/type/Point");
     GParamList params = runtime->init_params(1, GNativeObj{.type = INT, .val = {.n = 77}});
     GNativeObj obj;
-    runtime->init_new(str_class, params);
+    obj = runtime->init_new(str_class, params);
+    std::cout << "OBJ: " << obj.val.addr;
     params = runtime->init_params(0);
-    GNativeObj x;
-    runtime->invoke(obj, "getX", params);
+    GNativeObj x = runtime->invoke(obj, "getX", params);
 
-    std::cout << "x " << x.val.n;
+    std::cout << "x " << x.val.addr << " ";
     print(str);
 }
