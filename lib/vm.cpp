@@ -4,7 +4,8 @@
 
 #include "vm.h"
 
-VM::VM(size_t stack_size, Memory *mem, std::map<std::string, ClassDef*> *loaded_classes, Function * func_pool, int debug) {
+VM::VM(size_t stack_size, Memory *mem, std::map<std::string, ClassDef *> *loaded_classes, Function *func_pool,
+       int debug) {
     this->stack = new Stack(stack_size);
     this->instr_ptr = 0;
     this->memory = mem;
@@ -14,15 +15,23 @@ VM::VM(size_t stack_size, Memory *mem, std::map<std::string, ClassDef*> *loaded_
     this->debug = debug;
 }
 
-GNativeObj VM::vm_native_callback(short func_index, short ip) {
+GNativeObj VM::vm_native_callback(short * func_index, short ip) {
     this->instr_ptr = ip;
-    vm_run(func_index); // till the function exits
+    if (debug) {
+        std::cout << std::endl;
+    }
+    vm_run(func_index, true); // till the function exits
 }
 
 void VM::vm_run(short func_index) {
+    vm_run(&func_index, false);
+}
+
+void VM::vm_run(short * func_index, bool temp_spawn) {
+
     short code;
     Code *code_mem = new Code(nullptr);
-    Function main = func_pool[func_index];
+    Function main = func_pool[*func_index];
     Code copy_main = main.code;
     code_mem->copy_contents(&copy_main);
     Exec::Opcode opcodes[128];
@@ -40,9 +49,10 @@ void VM::vm_run(short func_index) {
         /** Decode **/
         Exec::Opcode opcode = opcodes[code];
 
+
         if (debug) {
             //printf("\tTop: %d\n", this->stack->top);
-            std::cout << "F" << func_index << " " << func_pool[func_index].total_local_vars() << " ";
+            std::cout << "F" << *func_index << " " << func_pool[*func_index].total_local_vars() << " ";
             printf("IP: %03d\tOpcode: %04d\tFP: %02d ", this->instr_ptr, code, this->stack->frame_ptr);
             // print the local memory
 //            printf(" Mem: [ ");
@@ -60,7 +70,7 @@ void VM::vm_run(short func_index) {
                 if (heap_obj != nullptr && heap_obj->_type == GObject::ARRAY) {
                     auto arr = dynamic_cast<ArrayDescriptor *>(heap_obj);
 
-                    std::cout << "{ P: " << arr->_size << " } ";
+                    std::cout << "{ A: " << arr->_size << " } ";
                 }
                 if (heap_obj != nullptr && heap_obj->_type == GObject::OBJ) {
                     auto obj = dynamic_cast<ObjectDescriptor *>(heap_obj);
@@ -72,12 +82,16 @@ void VM::vm_run(short func_index) {
             fflush(stdout);
         }
         /** Execute */
-        vm_exec(exec, &opcode, &func_index);
-        code = get_code(code_mem->code_fetch(this->instr_ptr));
+        vm_exec(exec, &opcode, func_index);
 
         if (debug) {
             stack->debug_print();
         }
+        if (temp_spawn && code == RET) {
+            return;
+        }
+        code = get_code(code_mem->code_fetch(this->instr_ptr));
+
     }
 }
 
@@ -102,7 +116,9 @@ void VM::vm_exec(Exec exec, const Exec::Opcode *opcode, short *func_index) {
 
         case Exec::CALLER: {
             auto ptr = opcode->exec_caller;
-            instr_ptr = (exec.*ptr)(instr_ptr, func_index, std::bind(&VM::vm_native_callback, this, std::placeholders::_1, std::placeholders::_2));
+            instr_ptr = (exec.*ptr)(instr_ptr, func_index,
+                                    std::bind(&VM::vm_native_callback, this, std::placeholders::_1,
+                                              std::placeholders::_2));
             break;
         }
         case Exec::NONE:

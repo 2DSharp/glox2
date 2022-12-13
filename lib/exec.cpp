@@ -187,8 +187,14 @@ int resolve_const(Memory *mem, short addr) {
 short Exec::e_set(short ip) {
     stack_obj_t obj_ref = stack_pop(stack);
     stack_obj_t val_ref = stack_pop(stack);
+    GObject * val;
+    if (val_ref.type == ADDR) {
+         val = dynamic_cast<GObject *>(mem->heap->get_object(val_ref.val.addr));
+    } else {
+        val = GObjectFactory::create_primitive_object(&val_ref);
+        mem->heap->alloc(val);
+    }
     auto obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(obj_ref.val.addr));
-    auto val = dynamic_cast<GObject *>(mem->heap->get_object(val_ref.val.addr));
     stack_obj_t field_index = code_fetch(++ip);
     obj->set_field(obj->get_context()->get_var_index(mem->constant_pool[field_index.val.addr]->val), val);
 
@@ -575,27 +581,23 @@ Exec::native_invoke(short ip, short *caller_index, vm_run_callback callback, GNa
         stack->push(convert_native_to_stack_obj(params[i]));
     }
     stack->push(convert_native_to_stack_obj(obj));
-    ocall_lib(func, ip, caller_index, callback);
-    callback(*(caller_index), ip);
+    ip = ocall_lib(func, ip, caller_index, callback);
+    callback(caller_index, ip);
 
-//    std::cout << ip << " " << func;
-
-    auto res = stack_pop(stack);
-    GNativeObj param;
-    if (res.type == GObject::OBJ) {
-        param.val.addr = res.val.addr;
-    }
+    stack_obj_t res = stack->pop();
 
     return convert_stack_obj_to_native(res);
 }
 
 GNativeObj Exec::native_instantiate_obj(short ip, short *caller_index, vm_run_callback runner, GClass cls, GParamList params) {
+    short * original_caller = caller_index;
     for (int i = 0; i < params.size; i++) {
         stack->push(convert_native_to_stack_obj(params.params[i]));
     }
     instantiate_object(cls.class_name);
     ip = ocall_lib("init", ip, caller_index, runner);
-    runner(*(caller_index), ip);
+    caller_index = original_caller;
+    runner(caller_index, ip);
     auto res = convert_stack_obj_to_native(stack->pop());
     return res;
 }

@@ -16,7 +16,7 @@
 #include <iostream>
 #include <functional>
 #include <cstring>
-typedef std::function<GNativeObj(short,short)> vm_run_callback;
+typedef std::function<GNativeObj(short*,short)> vm_run_callback;
 
 class Exec {
 private:

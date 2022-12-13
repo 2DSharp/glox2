@@ -37,8 +37,9 @@ private:
     void vm_exec(Exec exec, const Exec::Opcode *opcode, short *func_index);
 
     std::map<std::string, ClassDef *> *loaded_classes;
-    GNativeObj vm_native_callback(short func_index, short ip);
+    GNativeObj vm_native_callback(short * func_index, short ip);
 
+    void vm_run(short * func_index, bool temp_spawn);
 };
 
 

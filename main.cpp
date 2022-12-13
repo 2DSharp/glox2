@@ -100,6 +100,7 @@ int main() {
     };
 
     Bytecode point_get_x[] = {
+            {OP, LOAD}, {ADDR, {.addr = 0}}, // obj
             {OP, GET}, {ADDR, {.addr = 0x8}}, // field name from constant pool
             {OP, RET}
     };
