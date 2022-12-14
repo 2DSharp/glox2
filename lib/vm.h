@@ -32,6 +32,7 @@ private:
     Function *func_pool;
     int debug = 0;
     static short get_code(Bytecode code);
+    Code * code_mem;
 
 
     void vm_exec(Exec exec, const Exec::Opcode *opcode, short *func_index);

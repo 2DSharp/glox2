@@ -13,6 +13,7 @@ VM::VM(size_t stack_size, Memory *mem, std::map<std::string, ClassDef *> *loaded
     this->loaded_classes = loaded_classes;
     this->func_pool = func_pool;
     this->debug = debug;
+    this->code_mem = new Code(nullptr);
 }
 
 GNativeObj VM::vm_native_callback(short * func_index, short ip) {
@@ -30,7 +31,6 @@ void VM::vm_run(short func_index) {
 void VM::vm_run(short * func_index, bool temp_spawn) {
 
     short code;
-    Code *code_mem = new Code(nullptr);
     Function main = func_pool[*func_index];
     Code copy_main = main.code;
     code_mem->copy_contents(&copy_main);
