@@ -15,10 +15,10 @@
 - [ ] IO - Read from console
 - [ ] IO - Read and write from files
 - [ ] IO - Networking - Read and Write Sockets
-- [ ] Allow calling glox program calls from native code (https://stackoverflow.com/a/17083153)
+- [x] Allow calling glox program calls from native code (https://stackoverflow.com/a/17083153)
   - Use single function to allow access to internal symbol table (constant pool/function pool)
 - [x] Objects (Classes and methods)
-- [ ] Pass objects to native calls
+- [x] Pass objects to native calls
 - [ ] Allow for making libraries
 
 ## Compiler level

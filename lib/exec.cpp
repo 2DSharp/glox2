@@ -327,53 +327,10 @@ short Exec::call_fn(short target_index, short ip, short *caller_index, vm_run_ca
         local_mem[i] = stack_pop(stack);
     }
 
-//    for (int i = 1; i <= target_fn.n_args; i++) {
-//        stack_obj_t v = stack_pop(stack);
-//        // Leave the fp, start from the next address otherwise it will overwrite whatever is in fp
-//        stack->set_content(fp_new, target_fn.n_args - i, v);
-//    }
 
     if (target_fn.func_type == Function::NATIVE) {
         // Make a copy of the local variables into a subarray
-
-        DLLoader *loader = get_dl_loader(target_fn.lib_path);
-        loader->DLOpenLib();
-        void *(*native_func)(stack_obj_t *, std::string);
-        // void (*init_runtime)(GRuntime*(*)());
-        // init_runtime = reinterpret_cast<void (*)(void (*)())> (loader->DLGetInstance("_initialize_glox_runtime"));
-        void (*init_runtime)(GRuntime);
-        init_runtime = reinterpret_cast<void (*)(GRuntime)> (loader->DLGetInstance("_initialize_glox_runtime"));
-        Callback<GClass(const char *)>::func = std::bind(&Exec::native_get_class, this, std::placeholders::_1);
-        auto native_get_class = static_cast<GClass (*)(const char *)>(Callback<GClass(const char *)>::callback);
-
-        Callback<GNativeObj (GNativeObj, const char *, GParamList)>::func = std::bind(&Exec::native_invoke, this, ip,
-                                                                                      caller_index,
-                                                                                      callback,
-                                                                                      std::placeholders::_1,
-                                                                                      std::placeholders::_2,
-                                                                                      std::placeholders::_3);
-        auto native_invoke = static_cast<GNativeObj (*)(GNativeObj , const char *, GParamList)>
-        (Callback<GNativeObj (GNativeObj, const char *, GParamList)>::callback);
-
-        Callback<GNativeObj (GClass, GParamList)>::func = std::bind(&Exec::native_instantiate_obj, this, ip,
-                                                                     caller_index,
-                                                                     callback,
-                                                                     std::placeholders::_1,
-                                                                     std::placeholders::_2);
-        auto native_instantiate = static_cast<GNativeObj (*)(GClass, GParamList)>
-        (Callback<GNativeObj (GClass, GParamList)>::callback);
-
-        GRuntime runtime = {
-                .get_class = native_get_class,
-                .invoke = native_invoke,
-                .init_new = native_instantiate
-        };
-        init_runtime(runtime);
-        native_func = reinterpret_cast<void *(*)(stack_obj_t *, std::string)> (loader->DLGetInstance(
-                "_invoke_gnative_function"));
-        native_func(local_mem, target_fn.call_symbol);
-        loader->DLCloseLib();
-
+        process_native_call(ip, caller_index, callback, target_fn, local_mem);
         return ++ip;
     }
 
@@ -402,6 +359,54 @@ short Exec::call_fn(short target_index, short ip, short *caller_index, vm_run_ca
     *caller_index = target_index; // Sets the new caller function index to the target function's index
     code->copy_contents(&target_fn.code);
     return 0; // call the 1st line of the target code
+}
+
+void Exec::process_native_call(short ip, short *caller_index, vm_run_callback callback,
+                               Function &target_fn, stack_obj_t *local_mem) {
+    DLLoader *loader = get_dl_loader(target_fn.lib_path);
+    loader->DLOpenLib();
+    void *(*native_func)(stack_obj_t *, std::string);
+    // void (*init_runtime)(GRuntime*(*)());
+// init_runtime = reinterpret_cast<void (*)(void (*)())> (loader->DLGetInstance("_initialize_glox_runtime"));
+    void (*init_runtime)(GRuntime);
+    init_runtime = reinterpret_cast<void (*)(GRuntime)> (loader->DLGetInstance("_initialize_glox_runtime"));
+    Callback<GClass(const char *)>::func = std::bind(&Exec::native_get_class, this, std::placeholders::_1);
+    auto native_get_class = static_cast<GClass (*)(const char *)>(Callback<GClass(const char *)>::callback);
+
+    Callback<GNativeObj (GNativeObj, const char *, GParamList)>::func = std::bind(&Exec::native_invoke, this, ip,
+                                                                                  caller_index,
+                                                                                  callback,
+                                                                                  std::placeholders::_1,
+                                                                                  std::placeholders::_2,
+                                                                                  std::placeholders::_3);
+    auto native_invoke = static_cast<GNativeObj (*)(GNativeObj , const char *, GParamList)>
+    (Callback<GNativeObj (GNativeObj, const char *, GParamList)>::callback);
+
+    Callback<GNativeObj (GClass, GParamList)>::func = std::bind(&Exec::native_instantiate_obj, this, ip,
+                                                                 caller_index,
+                                                                 callback,
+                                                                 std::placeholders::_1,
+                                                                 std::placeholders::_2);
+    auto native_instantiate = static_cast<GNativeObj (*)(GClass, GParamList)>
+    (Callback<GNativeObj (GClass, GParamList)>::callback);
+
+    Callback<const char * (GNativeString)>::func = std::bind(&Exec::native_get_str_chars, this,
+                                                                std::placeholders::_1);
+    auto native_get_str_chars = static_cast<const char * (*)(GNativeString)>
+    (Callback<const char * (GNativeString)>::callback);
+
+
+    GRuntime runtime = {
+            .get_class = native_get_class,
+            .invoke = native_invoke,
+            .init_new = native_instantiate,
+            .get_str_chars = native_get_str_chars
+    };
+    init_runtime(runtime);
+    native_func = reinterpret_cast<void *(*)(stack_obj_t *, std::string)> (loader->DLGetInstance(
+            "_invoke_gnative_function"));
+    native_func(local_mem, target_fn.call_symbol);
+    loader->DLCloseLib();
 }
 
 short Exec::e_call(short ip, short *caller_index, vm_run_callback runner) {
@@ -600,4 +605,34 @@ GNativeObj Exec::native_instantiate_obj(short ip, short *caller_index, vm_run_ca
     runner(caller_index, ip);
     auto res = convert_stack_obj_to_native(stack->pop());
     return res;
+}
+
+const char * Exec::native_get_str_chars(GNativeString str) {
+    // create a process to allow freeing of strings
+    auto str_obj_ref = convert_native_to_stack_obj(str);
+    if (str.type != ADDR) {
+        switch (str.type) {
+            case CHAR: {
+                return new char[1]{str.val.c};
+            }
+            case INT: {
+                auto res_str = std::to_string(str.val.n);
+                char *char_arr = new char[res_str.size()];
+                strcpy(char_arr, res_str.c_str());
+                return char_arr;
+            }
+            default:
+                return "garbage";
+        }
+    }
+    auto str_obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(str_obj_ref.val.addr));
+    auto str_arr = (ArrayDescriptor *) str_obj->get_field(str_obj->get_context()->get_var_index("value"));
+    size_t len = str_arr->_size;
+    char * res_str = new char[len];
+
+    for (int i = 0; i < len; i++) {
+        res_str[i] = mem->heap->get_object(str_arr->get_address_from_index(i))->_data.val.c;
+    }
+
+    return res_str;
 }

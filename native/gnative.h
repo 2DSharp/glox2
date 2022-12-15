@@ -9,7 +9,7 @@
 
 #include <string>
 
-#define OP 0
+#define VOID 0
 #define INT 1
 #define CHAR 2
 #define FLOAT 3
@@ -23,12 +23,14 @@ typedef union {
     char c;
     float f;
     bool b;
-} GNative_Data;
+} GNativeVal;
 typedef struct obj_t
 {
     unsigned int type;
-    GNative_Data val;
+    GNativeVal val;
 } GNativeObj;
+
+typedef GNativeObj GNativeString;
 
 //class GloxRuntime {
 //public:
@@ -77,6 +79,7 @@ typedef struct glox_runtime_t {
     GNativeObj (*init_new)(GClass cls, GParamList) = nullptr;
 
     GParamList (*init_params)(size_t sz, ...) = g_init_params;
+    const char * (*get_str_chars)(GNativeString) = nullptr;
 
 } GRuntime;
 

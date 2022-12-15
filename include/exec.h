@@ -135,6 +135,11 @@ public:
 
     void instantiate_object(const std::string &class_name);
 
+    void
+    process_native_call(short ip, short *caller_index, vm_run_callback callback, Function &target_fn,
+                        stack_obj_t *local_mem);
+
+    const char *native_get_str_chars(GNativeString str);
 };
 
 #endif //GLOX_H

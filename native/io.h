@@ -14,7 +14,7 @@ GRuntime runtime;
 
 extern "C"
 {
-void GNative_io_print(GRuntime * runtime, std::string str);
+void GNative_io_print(GRuntime * runtime, GNativeString str);
 }
 
 void _initialize_glox_runtime(GRuntime g_runtime) {
@@ -23,13 +23,14 @@ void _initialize_glox_runtime(GRuntime g_runtime) {
 
 void* _invoke_gnative_function(GNativeObj * parameters, std::string func) {
     if (func == "GNative_io_print") {
-        if (parameters->type == INT) {
-            GNative_io_print(&runtime, std::to_string(parameters[0].val.n));
-        }
-        if (parameters->type == CHAR) {
-            std::string str{parameters[0].val.c};
-            GNative_io_print(&runtime, str);
-        }
+        GNative_io_print(&runtime, parameters[0]);
+//        if (parameters->type == INT) {
+//            GNative_io_print(&runtime, std::to_string(parameters[0].val.n));
+//        }
+//        if (parameters->type == CHAR) {
+//            std::string str{parameters[0].val.c};
+//            GNative_io_print(&runtime, str);
+//        }
     }
 }
 void _register_func(void (*callback_func)()) {

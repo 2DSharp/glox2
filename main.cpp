@@ -111,7 +111,7 @@ int main() {
     loaded_classes["glox/math/type/Point"] = point_class;
 
 
-    Bytecode print_string[] = {
+    Bytecode old_print_string[] = {
             {OP, LOAD}, {ADDR, {.addr = 0}}, // string
             {OP, OCALL}, {ADDR, {.addr = 0x05}}, // value
             {OP, STORE}, {ADDR, {.addr = 3}},
@@ -136,8 +136,14 @@ int main() {
             {OP, JMPT}, {ADDR, {.addr = 15}}, // loop back to 13
             {OP, RET}
     };
+    Bytecode print_string[] = {
+            {OP, LOAD}, {ADDR, {.addr = 0}},
+            {OP, CALL}, {ADDR, {.addr = F_PRINT}},
+            {OP, RET}
+    };
 
-    Function f_print_string = {.locals = 3, .n_args = 1, .return_type = 0, .code = Code(print_string)}; // print(string)
+   // Function old_f_print_string = {.locals = 3, .n_args = 1, .return_type = 0, .code = Code(print_string)}; // print(string)
+    Function f_print_string = {.locals = 0, .n_args = 1, .return_type = 0, .code = Code(print_string)}; // print(string)
     Function f_string_init_def = {.locals = 0, .n_args = 2, .scope = Function::PUBIC,  .context = string_class, .return_type = 0, .func_type = Function::CTOR, .code = Code(ctor_string_from_arr) }; // new String(arr) -> definition
     Function f_new_string = {.locals = 0, .n_args = 1, .return_type = 1, .code = Code(create_new_string_from_array)}; // str = new string()
 
@@ -288,7 +294,7 @@ int main() {
             {OP, LOAD}, {ADDR, {.addr = 0}},
             {OP, PALOAD},
             {OP, CALL}, {ADDR, {.addr = F_PRINT}},
-            {OP, LOAD}, {ADDR, {.addr = 0}},
+            {OP, LOAD}, {ADDR, {.addr = 0}}, //21,22
             {OP, ALEN},
             {OP, CALL}, {ADDR, {.addr = F_PRINT}},
             {OP, ICONST}, {INT, {.n = 1000}},
@@ -315,32 +321,32 @@ int main() {
             {OP, PASTORE},
             // --- Stored data here --
             // Now let'c iterate through the array
-//            {OP, LOAD}, {ADDR, {.addr = 0}},
-//            {OP, ALEN}, // Store length in variable
-//            {OP, STORE}, {ADDR, {.addr = 2}}, // len = arr.length
-//            {OP, ICONST}, {INT, {.n = 0}},
-//            {OP, STORE}, {ADDR, {.addr = 1}}, // i = 0
-//            {OP, LOAD}, {ADDR, {.addr = 1}},
-//            {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // 69
-//
-//            {OP, LOAD}, {INT, {.addr = 1}},
-//            {OP, LOAD}, {ADDR, {.addr = 0}},
-//            {OP, PALOAD},
-//            {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // print arr[i]
-//
-//            {OP, LOAD}, {INT, {.addr = 1}},
-//            {OP, ICONST}, {INT, {.n = 1}},
-//            {OP, IADD},
-//            {OP, STORE}, {ADDR, {.addr = 1}}, // i = i + 1
-//            {OP, LOAD}, {ADDR, {.addr = 1}}, // i
-//            {OP, LOAD}, {ADDR, {.addr = 2}}, // arr.length
-//            {OP, ILT}, // i < arr.length
-//            {OP, JMPT}, {ADDR, {.addr = 71}},
-//            {OP, CLOAD}, {ADDR, {.addr = 0x0}}, // references the symbol pool at addr 0
-//            {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // print arr[i]
             {OP, LOAD}, {ADDR, {.addr = 0}},
-            {OP, CALL}, {ADDR, {.addr = F_GET_STR_FROM_CHAR_ARR}},
-            {OP, CALL}, {ADDR, {.addr = F_PRINT_STR}},
+            {OP, ALEN}, // Store length in variable
+            {OP, STORE}, {ADDR, {.addr = 2}}, // len = arr.length
+            {OP, ICONST}, {INT, {.n = 0}},
+            {OP, STORE}, {ADDR, {.addr = 1}}, // i = 0
+            {OP, LOAD}, {ADDR, {.addr = 1}},
+            {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // 69
+
+            {OP, LOAD}, {INT, {.addr = 1}},
+            {OP, LOAD}, {ADDR, {.addr = 0}},
+            {OP, PALOAD},
+            {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // print arr[i]
+
+            {OP, LOAD}, {INT, {.addr = 1}},
+            {OP, ICONST}, {INT, {.n = 1}},
+            {OP, IADD},
+            {OP, STORE}, {ADDR, {.addr = 1}}, // i = i + 1
+            {OP, LOAD}, {ADDR, {.addr = 1}}, // i
+            {OP, LOAD}, {ADDR, {.addr = 2}}, // arr.length
+            {OP, ILT}, // i < arr.length
+            {OP, JMPT}, {ADDR, {.addr = 71}},
+            {OP, CLOAD}, {ADDR, {.addr = 0x0}}, // references the symbol pool at addr 0
+            {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // print arr[i]
+ //           {OP, LOAD}, {ADDR, {.addr = 0}},
+//            {OP, CALL}, {ADDR, {.addr = F_GET_STR_FROM_CHAR_ARR}},
+//            {OP, CALL}, {ADDR, {.addr = F_PRINT_STR}},
             {OP, CLOAD}, {ADDR, {.addr = 0x00}},
             {OP, CALL}, {ADDR, {.addr = F_PRINT_STR}},
             {OP, HALT},
@@ -349,7 +355,7 @@ int main() {
     Code code_arr_main(arr_test);
     f_main.code = code_arr_main;
     func_pool[F_MAIN] = f_main;
-    VM *vm = new VM(stack_size, mem, &loaded_classes, func_pool, 1);
+    VM *vm = new VM(stack_size, mem, &loaded_classes, func_pool, 0);
 
     vm->vm_run(F_MAIN);
 //
