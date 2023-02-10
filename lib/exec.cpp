@@ -628,11 +628,12 @@ const char * Exec::native_get_str_chars(GNativeString str) {
     auto str_obj = dynamic_cast<ObjectDescriptor *>(mem->heap->get_object(str_obj_ref.val.addr));
     auto str_arr = (ArrayDescriptor *) str_obj->get_field(str_obj->get_context()->get_var_index("value"));
     size_t len = str_arr->_size;
-    char * res_str = new char[len];
-
+    char * res_str = new char[len + 1];
     for (int i = 0; i < len; i++) {
         res_str[i] = mem->heap->get_object(str_arr->get_address_from_index(i))->_data.val.c;
     }
-
+    // Making a C-style char array string requires the buffer to be terminated with a null termination
+    // https://stackoverflow.com/questions/20268769/why-do-i-get-garbage-value-when-output-character-array-to-console
+    res_str[len] = '\0';
     return res_str;
 }
