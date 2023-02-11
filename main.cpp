@@ -1,5 +1,7 @@
 #include <iostream>
 #include "lib/vm.h"
+#include "serialization/schema_generated.h"
+#include <cstdio>
 
 #define F_MAIN 0
 #define F_ADD 1
@@ -344,7 +346,7 @@ int main() {
             {OP, JMPT}, {ADDR, {.addr = 71}},
             {OP, CLOAD}, {ADDR, {.addr = 0x0}}, // references the symbol pool at addr 0
             {OP, CALL}, {ADDR, {.addr = F_PRINT}}, // print arr[i]
- //           {OP, LOAD}, {ADDR, {.addr = 0}},
+//            {OP, LOAD}, {ADDR, {.addr = 0}},
 //            {OP, CALL}, {ADDR, {.addr = F_GET_STR_FROM_CHAR_ARR}},
 //            {OP, CALL}, {ADDR, {.addr = F_PRINT_STR}},
             {OP, CLOAD}, {ADDR, {.addr = 0x00}},
@@ -358,7 +360,31 @@ int main() {
     VM *vm = new VM(stack_size, mem, &loaded_classes, func_pool, 0);
 
     vm->vm_run(F_MAIN);
-//
+    flatbuffers::FlatBufferBuilder builder(1024);
+
+    auto cmd = glox::G_Op(ICONST);
+    auto val = glox::G_N(87);
+
+
+    auto b1 = glox::CreateG_Bytecode(builder, glox::DataType_OP, glox::DataVal_op, builder.CreateStruct(cmd).Union());
+    auto b2 = glox::CreateG_Bytecode(builder, glox::DataType_INT, glox::DataVal_n, builder.CreateStruct(val).Union());
+    auto bvec = builder.CreateVector({b1, b2, glox::CreateG_Bytecode(builder, glox::DataType_INT, glox::DataVal_n, builder.CreateStruct(val).Union()), glox::CreateG_Bytecode(builder, glox::DataType_INT, glox::DataVal_n, builder.CreateStruct(val).Union()),glox::CreateG_Bytecode(builder, glox::DataType_INT, glox::DataVal_n, builder.CreateStruct(val).Union())});
+
+    auto exec = glox::Createg_executable(builder, bvec);
+    builder.Finish(exec);
+
+    uint8_t *buf = builder.GetBufferPointer();
+    size_t size = builder.GetSize();
+
+// Open a file for writing
+    FILE *f = fopen("serialized_data.bin", "wb");
+
+// Write the serialized data to the file
+    fwrite(buf, 1, size, f);
+
+// Close the file
+    fclose(f);
+    //
 //    vm->vm_close();
 //    delete code;
     delete mem;

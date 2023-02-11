@@ -1,0 +1,57 @@
+namespace glox;
+
+// Define the enum for the different types of data stored in the `Bytecode` struct
+enum DataType : short {
+  OP = 0,
+  INT = 1,
+  CHAR = 2,
+  FLOAT = 3,
+  BOOL = 4,
+  ADDR = 5,
+  STR = 6
+}
+
+// Define structs for each type of data
+struct G_Op {
+  op: short;
+}
+
+struct G_Addr {
+  addr: short;
+}
+
+struct G_N {
+  n: int;
+}
+
+struct G_C {
+  c: byte;
+}
+
+struct G_F {
+  f: float;
+}
+
+struct G_B {
+  b: bool;
+}
+
+// Define the union that holds the different types of data
+union DataVal {
+  op: G_Op,
+  addr: G_Addr,
+  n: G_N,
+  c: G_C,
+  f: G_F,
+  b: G_B,
+}
+
+// Define the `Bytecode` struct
+table G_Bytecode {
+  type: DataType;
+  val: DataVal;
+}
+
+table g_executable {
+    bytecode: [G_Bytecode];
+}

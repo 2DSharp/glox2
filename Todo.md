@@ -7,7 +7,7 @@
 - [x] Initiate IO (printing to console)
 - [x] Implement heap
 - [x] Implement arrays
-- [ ] Return data from native calls
+- [x] Return data from native calls
 - [x] Constant pool implementation
 - [ ] Store multiple data types - floats, boolean (ldc, fload)
 - [ ] Basic arithmetic ops on different data types
