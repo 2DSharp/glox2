@@ -22,7 +22,6 @@ int main() {
     auto * c = new Constant(Constant::STRING, "Hello");
     Constant * const_pool[] = {
             new Constant(Constant::STRING, "Hello"),
-            new Constant(Constant::STRING, "Hello"),
             new Constant(Constant::CLASS, "glox/core/type/String"),
             new Constant(Constant::FUNC, "init"),
             new Constant(Constant::VAR, "value"),
@@ -84,7 +83,7 @@ int main() {
     Bytecode ctor_string_from_arr[] = {
             {OP, LOAD}, {ADDR, {.addr = 1}}, // array
             {OP, LOAD}, {ADDR, {.addr = 0}}, // object ref
-            {OP, OCALL}, {ADDR, {.addr = 0x5}}, // setValue
+            {OP, OCALL}, {ADDR, {.addr = 0x4}}, // setValue
             {OP, RET}
     };
 
@@ -358,7 +357,7 @@ int main() {
     Code code_arr_main(arr_test);
     f_main.code = code_arr_main;
     func_pool[F_MAIN] = f_main;
-    VM *vm = new VM(stack_size, mem, &loaded_classes, func_pool, 1);
+    VM *vm = new VM(stack_size, mem, &loaded_classes, func_pool, 0);
 
     vm->vm_run(F_MAIN);
 //    Serialization serialization;
