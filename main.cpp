@@ -1,6 +1,6 @@
 #include <iostream>
 #include "lib/vm.h"
-#include "serialization/schema_generated.h"
+#include "include/Serialization.h"
 #include <cstdio>
 
 #define F_MAIN 0
@@ -21,6 +21,7 @@ int main() {
     uint32_t stack_size = 2000;
     auto * c = new Constant(Constant::STRING, "Hello");
     Constant * const_pool[] = {
+            new Constant(Constant::STRING, "Hello"),
             new Constant(Constant::STRING, "Hello"),
             new Constant(Constant::CLASS, "glox/core/type/String"),
             new Constant(Constant::FUNC, "init"),
@@ -83,7 +84,7 @@ int main() {
     Bytecode ctor_string_from_arr[] = {
             {OP, LOAD}, {ADDR, {.addr = 1}}, // array
             {OP, LOAD}, {ADDR, {.addr = 0}}, // object ref
-            {OP, OCALL}, {ADDR, {.addr = 0x4}}, // setValue
+            {OP, OCALL}, {ADDR, {.addr = 0x5}}, // setValue
             {OP, RET}
     };
 
@@ -357,33 +358,11 @@ int main() {
     Code code_arr_main(arr_test);
     f_main.code = code_arr_main;
     func_pool[F_MAIN] = f_main;
-    VM *vm = new VM(stack_size, mem, &loaded_classes, func_pool, 0);
+    VM *vm = new VM(stack_size, mem, &loaded_classes, func_pool, 1);
 
     vm->vm_run(F_MAIN);
-    flatbuffers::FlatBufferBuilder builder(1024);
-
-    auto cmd = glox::G_Op(ICONST);
-    auto val = glox::G_N(87);
-
-
-    auto b1 = glox::CreateG_Bytecode(builder, glox::DataType_OP, glox::DataVal_op, builder.CreateStruct(cmd).Union());
-    auto b2 = glox::CreateG_Bytecode(builder, glox::DataType_INT, glox::DataVal_n, builder.CreateStruct(val).Union());
-    auto bvec = builder.CreateVector({b1, b2, glox::CreateG_Bytecode(builder, glox::DataType_INT, glox::DataVal_n, builder.CreateStruct(val).Union()), glox::CreateG_Bytecode(builder, glox::DataType_INT, glox::DataVal_n, builder.CreateStruct(val).Union()),glox::CreateG_Bytecode(builder, glox::DataType_INT, glox::DataVal_n, builder.CreateStruct(val).Union())});
-
-    auto exec = glox::Createg_executable(builder, bvec);
-    builder.Finish(exec);
-
-    uint8_t *buf = builder.GetBufferPointer();
-    size_t size = builder.GetSize();
-
-// Open a file for writing
-    FILE *f = fopen("serialized_data.bin", "wb");
-
-// Write the serialized data to the file
-    fwrite(buf, 1, size, f);
-
-// Close the file
-    fclose(f);
+//    Serialization serialization;
+//    serialization.save_state(vm, "test.bin");
     //
 //    vm->vm_close();
 //    delete code;
