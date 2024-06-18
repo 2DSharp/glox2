@@ -5,6 +5,9 @@
 #include "ClassDef.h"
 
 int ClassDef::get_function_index(const std::string& fn_name) {
+    if (!fn_table.count(fn_name)) {
+        throw std::invalid_argument("Illegal call to undeclared function \"" + fn_name + "()\"");
+    }
     return fn_table.at(fn_name);
 }
 
