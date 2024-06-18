@@ -12,6 +12,10 @@ int ClassDef::get_function_index(const std::string& fn_name) {
 }
 
 int ClassDef::get_var_index(const std::string& var_name) {
+    if (!var_table.count(var_name)) {
+        throw std::invalid_argument("Undeclared member variable \"" + var_name + "\"");
+
+    }
     return var_table.at(var_name);
 }
 
